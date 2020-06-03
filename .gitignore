@@ -20,6 +20,12 @@
 # RStudio files
 .Rproj.user/
 
+# user added
+*.Rproj
+dataExternal/*
+temp/*
+results/*
+
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf
@@ -37,3 +43,4 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+.Rproj.user
