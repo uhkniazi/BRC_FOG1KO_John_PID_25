@@ -21,8 +21,7 @@ cSampleCol = dbGetQuery(db, paste('describe Sample;'))$Field[-1]
 dbGetQuery(db, paste('describe File;'))
 cFileCol = dbGetQuery(db, paste('describe File;'))$Field[-1]
 
-setwd(gcRemoteDir)
-setwd('raw/')
+setwd('dataExternal/remote/raw/')
 
 # list the files
 cvFiles = list.files(pattern = 'fq.gz', recursive = T)
@@ -35,20 +34,11 @@ lFiles = split(cvFiles, fSplit)
 setwd(gcswd)
 ## load the metadata file
 dfMeta = read.csv('dataExternal/metaData.csv', header=T, stringsAsFactors = F)
-## perform some acrobatics to format file names
-## due to the nature of the metadata file recieved
 str(dfMeta)
-fn.1 = paste(dfMeta[,1], dfMeta[,2], dfMeta[,3], dfMeta[,4], dfMeta[,5], sep='_')
-fn.2 = paste(fn.1, dfMeta[,6], sep='')
-fn.2 = gsub('NA', '', fn.2)
-fn = paste(fn.2, c('1.fq.gz', '2.fq.gz'), sep='_')
-
-dfMeta = dfMeta[,-c(1:7)]
-dfMeta$Name = fn
 cn = colnames(dfMeta)
 # remove any white space
 for (i in seq_along(1:ncol(dfMeta))) dfMeta[,cn[i]] = gsub(' ', '', dfMeta[,cn[i]])
-
+dim(dfMeta)
 # sanity check
 table(as.character(dfMeta$Name) %in% cvFiles)
 table(cvFiles %in% as.character(dfMeta$Name))
@@ -57,28 +47,34 @@ table(cvFiles %in% as.character(dfMeta$Name))
 i = match(cvFiles, dfMeta$Name)
 dfMeta = dfMeta[i,]
 identical(as.character(dfMeta$Name), cvFiles)
-dfMeta = dfMeta[,-5]
 dfMeta$fSplit = fSplit
 
 ## extract reduced sample table by removing one pair of the fastq file
+## this is because the metadata file provided matches each row of the file
+## to each fastq file, and there are 2 fastq files per sample
 cvSample = unique(dfMeta$fSplit)
 i = match(cvSample, dfMeta$fSplit)
 dfMeta.sam = dfMeta[i,]
 str(dfMeta.sam)
-xtabs( ~ Sample_ID + Lesional + Patient_ID, data=dfMeta.sam)
-xtabs( ~ Sequencing_Run + Lesional + Patient_ID, data=dfMeta.sam)
-xtabs( ~ Sequencing_Run + Sequencing_Lane + Patient_ID, data=dfMeta.sam)
+xtabs( ~ fSplit + Lane, data=dfMeta.sam)
+xtabs( ~ Technical_Replicate + Lane, data=dfMeta.sam)
+xtabs( ~ Technical_Replicate + Biological_Replicate, data=dfMeta.sam)
+xtabs( ~ Cell_Line + Induction_state, data=dfMeta.sam)
+xtabs( ~ Cell_Line + Biological_Replicate + Technical_Replicate + Induction_state, data=dfMeta.sam)
 
 ## create the entry for samples
 cSampleCol
 
-dfSamples = data.frame(idProject=g_pid, idData=g_did, title=dfMeta.sam$Sample_ID, 
-                       description= paste('sequencing lane', as.character(dfMeta.sam$Sequencing_Lane),
+dfSamples = data.frame(idProject=g_pid, idData=g_did, title=dfMeta.sam$fSplit,
+                       location='rosalind scratch and a copy with john',
+                       description= paste('sequencing lane', as.character(dfMeta.sam$Lane),
                                           'group1 is Treatment',
-                                          'group2 is patient batch',
-                                          'group3 is sequencing run',
-                                          'use replicate pairs as technical replicates identifier', sep=';'),
-                       group1 = dfMeta.sam$Lesional, group2= dfMeta.sam$Patient_ID, group3=dfMeta.sam$Sequencing_Run)
+                                          'group2 is cell line',
+                                          'group3 is combination of Biological and Technical Replicate',
+                                          'samples labelled with NA for treatment are not part of this experiment', sep=';'),
+                       group1 = dfMeta.sam$Induction_state,
+                       group2= dfMeta.sam$Cell_Line,
+                       group3=paste(dfMeta.sam$Biological_Replicate, dfMeta.sam$Technical_Replicate, sep='_'))
 # write this data to the database
 rownames(dfSamples) = NULL
 
@@ -87,13 +83,16 @@ rownames(dfSamples) = NULL
 #dbWriteTable(db, name='Sample', value=dfSamples, append=T, row.names=F)
 # get this table again from database with ids added
 g_did
-dfSamples = dbGetQuery(db, paste('select * from Sample where Sample.idData = 43;'))
+dfSamples = dbGetQuery(db, paste('select * from Sample where Sample.idData = 46;'))
 
 # create entries for these files in the database
 dbListTables(db)
 cn = dbListFields(db, 'File')[-1]
 cn
-identical(names(lFiles), dfMeta.sam$fSplit)
+table(names(lFiles) %in% dfSamples$title)
+i = match(names(lFiles), dfSamples$title)
+dfSamples = dfSamples[i,]
+identical(names(lFiles), dfSamples$title)
 names(lFiles) = dfSamples$id
 
 # get the names of the samples
@@ -106,6 +105,11 @@ temp = lapply(as.character(dfSamples$id), function(x){
 dfFiles = do.call(rbind, temp)
 rownames(dfFiles) = NULL
 
+# sanity check
+fn = gsub('_[1|2].fq.gz', '', dfFiles$name)
+sapply(dfSamples$id, function(x) {
+  table(fn[dfFiles$idSample == x] %in% dfSamples$title[dfSamples$id == x])
+})
 # write this table to database
 ## note: do not execute as it is already done
 #dbWriteTable(db, name='File', value=dfFiles, append=T, row.names=F)
