@@ -112,7 +112,7 @@ outr2=`sed -n ${number}p $paramfile | awk '{print $5}'`
 outr2up=`sed -n ${number}p $paramfile | awk '{print $6}'`
 
 # 9. Run the program.", oFile)
-p1 = paste(cvTrimmomatic, '$inr1 $inr2 $outr1 $outr1up $outr2 $outr2up', sep=' ')
+p1 = paste(cvTrimmomatic, 'PE', '$inr1 $inr2 $outr1 $outr1up $outr2 $outr2up', sep=' ')
 p2 = paste0('ILLUMINACLIP:', cvIlluminaAdap, ':2:30:10:8:true') # remove more stringent settings LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36')
 com = paste(p1, p2, sep=' ')
 
