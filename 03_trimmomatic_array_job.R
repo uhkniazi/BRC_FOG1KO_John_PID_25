@@ -29,7 +29,7 @@ cvQueries = paste0('select File.*, Sample.title from File, Sample
                    where (Sample.idData = 46 and Sample.id =', dfQuery$SampleID, ') and (File.idSample = Sample.id)')
 
 # set header variables 
-cvShell = '#!/bin/bash -L'
+cvShell = '#!/bin/bash -l'
 cvJobName = '#SBATCH --job-name=trim-array'
 cvNodes = '#SBATCH --nodes=1'
 cvProcessors = '#SBATCH --ntasks=1'
