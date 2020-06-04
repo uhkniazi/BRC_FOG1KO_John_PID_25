@@ -63,9 +63,9 @@ i.2 = dfFiles$group2
 table(i.2)
 # unique names for each file
 cNames = paste(i, i.2, dfFiles$idSample, as.character(fReadDirection),  sep='_')
-lMetaData = list(files=dfFiles, samples=dfSample)
+lMetaData = list(files=dfFiles)
 
-ob = CFastqQualityBatch(csFiles, cNames, fReadDirection, lMetaData)
+ob = CFastqQualityBatch(dfFiles$name, cNames, fReadDirection, lMetaData)
 
 setwd(gcswd)
 n = make.names(paste('CFastqQualityBatch data id 43 alex rds'))
