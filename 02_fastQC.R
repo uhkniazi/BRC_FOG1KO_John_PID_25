@@ -68,7 +68,7 @@ lMetaData = list(files=dfFiles)
 ob = CFastqQualityBatch(dfFiles$name, cNames, fReadDirection, lMetaData)
 
 setwd(gcswd)
-n = make.names(paste('CFastqQualityBatch data id 43 alex rds'))
+n = make.names(paste('CFastqQualityBatch data id 46 john rds'))
 n2 = paste0('~/Data/MetaData/', n)
 save(ob, file=n2)
 
@@ -76,31 +76,12 @@ save(ob, file=n2)
 db = dbConnect(MySQL(), user='rstudio', password='12345', dbname='Projects', host='127.0.0.1')
 dbListTables(db)
 dbListFields(db, 'MetaFile')
-df = data.frame(idData=g_did, name=n, type='rds', location='~/Data/MetaData/', comment='pre trim FASTQ quality checks on Alex human data')
+df = data.frame(idData=g_did, name=n, type='rds', location='~/Data/MetaData/', comment='pre trim FASTQ quality checks on John FOG1 KO mouse data')
 #dbWriteTable(db, name = 'MetaFile', value=df, append=T, row.names=F)
 dbDisconnect(db)
 
 ### create the plots of interest
 getwd()
-
-## read lengths from 2 experiments are of different sizes so sort this issue 
-## add this to the main class later
-setMethod('mGetReadQualityByCycle', signature = 'CFastqQualityBatch', definition = function(obj, ...){
-  lQuality = lapply(obj@lData, function(x){
-    m = mGetReadQualityByCycle(x)
-    m = colMeans(m, na.rm = T)
-    return(m)
-  })
-  ## https://stackoverflow.com/questions/27153979/converting-nested-list-unequal-length-to-data-frame
-  indx = sapply(lQuality, length)
-  mQuality <- as.matrix(do.call(rbind,lapply(lQuality, `length<-`,
-                                             max(indx))))
-  
-  colnames(mQuality) = names(lQuality[[which.max(indx)]])
-  i = is.na(mQuality)
-  mQuality[i] = 0
-  return(t(mQuality))
-})
 
 iGetReadCount(ob)
 barplot.readcount(ob)
@@ -133,13 +114,17 @@ oDiag = CDiagnosticPlotsSetParameters(oDiag, l)
 
 fBatch = ob@fReadDirection
 str(ob@lMeta$files)
+d = ob@lMeta$files$description
+d = strsplit(d, ';')
+fBatch = factor(sapply(d, function(x) x[2]))
+d = strsplit(ob@lMeta$files$group3, '_')
 fBatch = factor(ob@lMeta$files$group3)
 ## try some various factors to make the plots of low dimensional summaries
 plot.mean.summary(oDiag, fBatch)
 plot.sigma.summary(oDiag, fBatch)
 boxplot.median.summary(oDiag, fBatch)
-plot.PCA(oDiag, fBatch)
-plot.dendogram(oDiag, fBatch, labels_cex = 0.8)
+plot.PCA(oDiag, fBatch, csLabels = '')
+plot.dendogram(oDiag, fBatch, labels_cex = 0.4)
 
 ## looking at alphabets 
 ## change direction and alphabet i.e. base as required
@@ -155,7 +140,8 @@ lAlphabets = lapply(i, function(x){
 
 mAlphabet = do.call(cbind, lapply(lAlphabets, function(x) return(x[,'A'])))
 dim(mAlphabet)
-colnames(mAlphabet) = ob@lMeta$samples$id
+i = grep('1', ob@fReadDirection)
+colnames(mAlphabet) = ob@lMeta$files$idSample[i]
 oDiag.2 = CDiagnosticPlots(mAlphabet, 'forward base A')
 
 ## turning off automatic jitters
@@ -164,12 +150,18 @@ l = CDiagnosticPlotsGetParameters(oDiag.2)
 l$PCA.jitter = F; l$HC.jitter = F;
 oDiag.2 = CDiagnosticPlotsSetParameters(oDiag.2, l)
 
-str(ob@lMeta$samples)
-fBatch = factor(ob@lMeta$samples$group1)
+i = grep('1', ob@fReadDirection)
+fBatch = factor(ob@lMeta$files$group2[i])
+length(fBatch)
+f = factor(ob@lMeta$files$group2[i])
+fBatch = fBatch:f
+d = strsplit(ob@lMeta$files$group3[i], '_')
+fBatch = factor(sapply(d, function(x) x[2]))
 
 ## try some various factors to make the plots of low dimensional summaries
 plot.mean.summary(oDiag.2, fBatch)
 plot.sigma.summary(oDiag.2, fBatch)
 boxplot.median.summary(oDiag.2, fBatch)
-plot.PCA(oDiag.2, fBatch)
+plot.PCA(oDiag.2, fBatch, cex=2)
+plot.PCA(oDiag.2, fBatch, xlim=c(-20, 20), cex=2)
 plot.dendogram(oDiag.2, fBatch, labels_cex = 0.8)
