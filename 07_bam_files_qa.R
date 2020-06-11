@@ -70,9 +70,9 @@ lAllBams = lapply(csFiles, function(x){
 names(lAllBams) = dfSample$id
 
 setwd(gcswd)
-n = make.names(paste('CBamScaffold pre duplicate removal data id 43 Alex rds'))
+n = make.names(paste('CBamScaffold pre duplicate removal data id 46 John rds'))
 lAllBams$meta = dfSample
-lAllBams$desc = paste('CBamScaffold object from bam files before duplicate removal for alex', date())
+lAllBams$desc = paste('CBamScaffold object from bam files before duplicate removal for John PID 25', date())
 n2 = paste0('~/Data/MetaData/', n)
 save(lAllBams, file=n2)
 
