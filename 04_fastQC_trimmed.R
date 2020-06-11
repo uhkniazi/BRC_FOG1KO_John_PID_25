@@ -71,7 +71,7 @@ lMetaData = list(files=dfFiles)
 ob = CFastqQualityBatch(dfFiles$name, cNames, fReadDirection, lMetaData)
 
 setwd(gcswd)
-n = make.names(paste('CFastqQualityBatch data id 46 john rds'))
+n = make.names(paste('CFastqQualityBatch post trimming data id 46 john rds'))
 n2 = paste0('~/Data/MetaData/', n)
 save(ob, file=n2)
 
@@ -79,7 +79,7 @@ save(ob, file=n2)
 db = dbConnect(MySQL(), user='rstudio', password='12345', dbname='Projects', host='127.0.0.1')
 dbListTables(db)
 dbListFields(db, 'MetaFile')
-df = data.frame(idData=g_did, name=n, type='rds', location='~/Data/MetaData/', comment='pre trim FASTQ quality checks on John FOG1 KO mouse data')
+df = data.frame(idData=g_did, name=n, type='rds', location='~/Data/MetaData/', comment='trim FASTQ quality checks on John FOG1 KO mouse data')
 #dbWriteTable(db, name = 'MetaFile', value=df, append=T, row.names=F)
 dbDisconnect(db)
 
@@ -90,7 +90,7 @@ iGetReadCount(ob)
 barplot.readcount(ob)
 plot.alphabetcycle(ob)
 plot.qualitycycle(ob)
-
+hist(iGetReadCount(ob), main='Read Count Distribution', xlab='')
 ######### some additional diagnostic plots on the data matrix
 ### some diagnostic plots
 url = 'https://raw.githubusercontent.com/uhkniazi/CDiagnosticPlots/master/CDiagnosticPlots.R'
@@ -121,12 +121,18 @@ d = ob@lMeta$files$description
 d = strsplit(d, ';')
 fBatch = factor(sapply(d, function(x) x[2]))
 d = strsplit(ob@lMeta$files$group3, '_')
-fBatch = factor(ob@lMeta$files$group3)
+fBatch = factor(ob@lMeta$files$group1)
+fBatch = fBatch:factor(ob@lMeta$files$group2)
+f1 = factor(ob@lMeta$files$group2)
+f2 = factor(ob@lMeta$files$group3)
+f3 = factor(ob@lMeta$files$group1)
+fBatch = f1:f2
+levels(fBatch)
 ## try some various factors to make the plots of low dimensional summaries
 plot.mean.summary(oDiag, fBatch)
 plot.sigma.summary(oDiag, fBatch)
 boxplot.median.summary(oDiag, fBatch)
-plot.PCA(oDiag, fBatch, csLabels = '')
+plot.PCA(oDiag, fBatch, csLabels = ob@lMeta$files$idSample, cex=2)
 plot.dendogram(oDiag, fBatch, labels_cex = 0.4)
 
 ## looking at alphabets 
@@ -141,11 +147,11 @@ lAlphabets = lapply(i, function(x){
   return(m)
 })
 
-mAlphabet = do.call(cbind, lapply(lAlphabets, function(x) return(x[,'A'])))
+mAlphabet = do.call(cbind, lapply(lAlphabets, function(x) return(x[,'C'])))
 dim(mAlphabet)
 i = grep('1', ob@fReadDirection)
 colnames(mAlphabet) = ob@lMeta$files$idSample[i]
-oDiag.2 = CDiagnosticPlots(mAlphabet, 'forward base A')
+oDiag.2 = CDiagnosticPlots(mAlphabet, 'forward base C')
 
 ## turning off automatic jitters
 ## we set jitter to FALSE for PCA, otherwise, in sparse matrix a random jitter is added to avoid divisions by zeros
@@ -156,15 +162,45 @@ oDiag.2 = CDiagnosticPlotsSetParameters(oDiag.2, l)
 i = grep('1', ob@fReadDirection)
 fBatch = factor(ob@lMeta$files$group2[i])
 length(fBatch)
-f = factor(ob@lMeta$files$group2[i])
-fBatch = fBatch:f
-d = strsplit(ob@lMeta$files$group3[i], '_')
-fBatch = factor(sapply(d, function(x) x[2]))
-
+f1 = factor(ob@lMeta$files$group2[i])
+f2 = factor(ob@lMeta$files$group3[i])
+f3 = factor(ob@lMeta$files$group1[i])
+fBatch = f1:f2#:f3
+levels(fBatch)
 ## try some various factors to make the plots of low dimensional summaries
 plot.mean.summary(oDiag.2, fBatch)
 plot.sigma.summary(oDiag.2, fBatch)
 boxplot.median.summary(oDiag.2, fBatch)
 plot.PCA(oDiag.2, fBatch, cex=2)
-plot.PCA(oDiag.2, fBatch, xlim=c(-20, 20), cex=2)
+plot.PCA(oDiag.2, fBatch, xlim=c(-10, 10), cex=2)
 plot.dendogram(oDiag.2, fBatch, labels_cex = 0.8)
+
+############ make a figure for the read counts
+mRC = as.matrix(iGetReadCount(ob))
+rownames(mRC) = ob@lMeta$files$id
+hc = hclust(dist(mRC))
+# lane
+d = ob@lMeta$files$description
+d = strsplit(d, ';')
+fLane = factor(sapply(d, function(x) x[2]))
+f1 = factor(ob@lMeta$files$group2)
+f2 = factor(ob@lMeta$files$group3)
+f3 = factor(ob@lMeta$files$group1)
+fBatch = f1:f2
+levels(fBatch)
+# get a clustering variable
+c = cutree(hc, h=2)
+table(c)
+dfReads = data.frame(mRC, c, fBatch)
+aggregate(dfReads$mRC, by=list(c), mean)
+table(c)
+
+col.p = rainbow(nlevels(fBatch))
+dend = as.dendrogram(hc)
+# Assigning the labels of dendrogram object with new colors:
+labels_colors(dend) = col.p[as.numeric(fBatch)][order.dendrogram(dend)]
+labels_cex(dend) = 0.5
+# Plotting the new dendrogram
+plot(dend, main=paste('Hierarchical clustering of distance matrix for read counts'),
+     xlab='', sub='Coloured on Genotype:Replicate')
+abline(h = 2)
