@@ -61,6 +61,12 @@ fBatch = factor(sapply(d, function(x) x[2]))
 # other combinations of factors
 fBatch = factor(dfSample$group2)
 levels(fBatch)
+## each lane has a technical replicate, identify those by
+## parsing the title field
+d = dfSample$title
+d = strsplit(d, '_')
+fBatch = factor(sapply(d, function(x) x[5]))
+levels(fBatch)
 
 boxplot.median.summary(oDiag.1, fBatch, legend.pos = 'topright', axis.label.cex = 0.5)
 plot.mean.summary(oDiag.1, fBatch, axis.label.cex = 0.5)
@@ -149,8 +155,8 @@ par(mfrow=c(2,2))
 boxplot.median.summary(oDiag.2, fBatch, legend.pos = 'topright', axis.label.cex = 0.5)
 boxplot.median.summary(oDiag.3, fBatch, legend.pos = 'topright', axis.label.cex = 0.5)
 
-plot.mean.summary(oDiag.2, fBatch, axis.label.cex = 0.5)
-plot.mean.summary(oDiag.3, fBatch, axis.label.cex = 0.5)
+plot.mean.summary(oDiag.2, fBatch, axis.label.cex = 1)
+plot.mean.summary(oDiag.3, fBatch, axis.label.cex = 1)
 
 plot.sigma.summary(oDiag.2, fBatch, axis.label.cex = 0.5)
 plot.sigma.summary(oDiag.3, fBatch, axis.label.cex = 0.5)
@@ -164,16 +170,16 @@ l$PCA.jitter = F
 l$HC.jitter = F
 
 oDiag.3 = CDiagnosticPlotsSetParameters(oDiag.3, l)
-plot.PCA(oDiag.2, fBatch)
-plot.PCA(oDiag.3, fBatch)
+plot.PCA(oDiag.2, fBatch, cex=2)
+plot.PCA(oDiag.3, fBatch, cex=1.2)
 plot.dendogram(oDiag.2, fBatch, labels_cex = 0.7)
-plot.dendogram(oDiag.3, fBatch, labels_cex = 0.7)
+plot.dendogram(oDiag.3, fBatch, labels_cex = 1)
 
 ######## modelling of PCA components to assign sources of variance to covariates in the design
 par(mfrow=c(1,1))
 plot(oDiag.3@lData$PCA$sdev)
 plot.PCA(oDiag.3, fBatch)
-mPC = oDiag.3@lData$PCA$x[,1:2]
+mPC = oDiag.3@lData$PCA$x[,1:3]
 
 ## try a linear mixed effect model to account for varince
 library(lme4)
@@ -183,34 +189,41 @@ str(dfData)
 dfData$values = as.numeric(scale(dfData$values))
 library(lattice)
 densityplot(~ values, data=dfData)
-densityplot(~ values | ind, data=dfData)
+densityplot(~ values | ind, data=dfData, scales=list(relation='free'))
 
 str(dfSample.2)
 dfData$fTreatment = factor(dfSample.2$group1)
-dfData$fPatient = factor(dfSample.2$group2)
-dfData$fTrPt = factor(dfSample.2$group1):factor(dfSample.2$group2)
+dfData$fGenotype = factor(dfSample.2$group2)
+dfData$fTrGt = factor(dfSample.2$group1):factor(dfSample.2$group2)
+## each biological source contributed 2 samples (technical replicates)
+## control for those using sample IDs
+f = as.character(dfSample.2$fReplicates)
+f = gsub('(.+)-\\d+$', replacement = '\\1', f)
+dfData$fSampleID = factor(f)
+xtabs(~ f + dfSample.2$group2 + dfSample.2$group1)
 
-densityplot(~ values | ind, groups=fTrPt, data=dfData, auto.key = list(columns=3))
-densityplot(~ values | ind, groups=fTreatment, data=dfData, auto.key = list(columns=3))
-densityplot(~ values | ind, groups=fPatient, data=dfData, auto.key = list(columns=3))
+densityplot(~ values | ind, groups=fTrGt, data=dfData, auto.key = list(columns=3), scales=list(relation='free'))
+densityplot(~ values | ind, groups=fTreatment, data=dfData, auto.key = list(columns=3), scales=list(relation='free'))
+densityplot(~ values | ind, groups=fGenotype, data=dfData, auto.key = list(columns=3), scales=list(relation='free'))
 # format data for modelling
 dfData$Coef.1 = factor(dfData$fTreatment:dfData$ind)
-dfData$Coef.2 = factor(dfData$fPatient:dfData$ind)
-dfData$Coef.3 = factor(dfData$fTrPt:dfData$ind)
+dfData$Coef.2 = factor(dfData$fGenotype:dfData$ind)
+dfData$Coef.3 = factor(dfData$fTrGt:dfData$ind)
+dfData$Coef.4 = factor(dfData$fSampleID:dfData$ind)
 str(dfData)
 
 fit.lme1 = lmer(values ~ 1  + (1 | Coef.1), data=dfData)
 fit.lme2 = lmer(values ~ 1  + (1 | Coef.1) + (1 | Coef.2), data=dfData)
 fit.lme3 = lmer(values ~ 1  + (1 | Coef.1) + (1 | Coef.2) + (1 | Coef.3), data=dfData)
-fit.lme4 = lmer(values ~ 1  + (1 | Coef.3), data=dfData)
+fit.lme4 = lmer(values ~ 1  + (1 | Coef.3) + (1 | Coef.4), data=dfData)
 
 anova(fit.lme1, fit.lme2, fit.lme3, fit.lme4)
 
-summary(fit.lme2)
-plot((fitted(fit.lme2)), resid(fit.lme2), pch=20, cex=0.7)
-lines(lowess((fitted(fit.lme2)), resid(fit.lme2)), col=2)
+summary(fit.lme4)
+plot((fitted(fit.lme4)), resid(fit.lme4), pch=20, cex=0.7)
+lines(lowess((fitted(fit.lme4)), resid(fit.lme4)), col=2)
 hist(dfData$values, prob=T)
-lines(density(fitted(fit.lme2)))
+lines(density(fitted(fit.lme4)))
 
 ## fit model with stan with various model sizes
 library(rstan)
@@ -225,64 +238,69 @@ str(dfData)
 m1 = model.matrix(values ~ Coef.1 - 1, data=dfData)
 m2 = model.matrix(values ~ Coef.2 - 1, data=dfData)
 m3 = model.matrix(values ~ Coef.3 - 1, data=dfData)
-m = cbind(m1, m2, m3)
+m4 = model.matrix(values ~ Coef.4 - 1, data=dfData)
+m = cbind(m1, m2, m3, m4)
 
 lStanData = list(Ntotal=nrow(dfData), Ncol=ncol(m), X=m,
-                 NscaleBatches=3, NBatchMap=c(rep(1, times=nlevels(dfData$Coef.1)),
+                 NscaleBatches=4, NBatchMap=c(rep(1, times=nlevels(dfData$Coef.1)),
                                               rep(2, times=nlevels(dfData$Coef.2)),
-                                              rep(3, times=nlevels(dfData$Coef.3))),
+                                              rep(3, times=nlevels(dfData$Coef.3)),
+                                              rep(4, times=nlevels(dfData$Coef.4))),
                  y=dfData$values)
 
-fit.stan.3 = sampling(stanDso, data=lStanData, iter=10000, chains=2, pars=c('betas', 'populationMean', 'sigmaPop', 'sigmaRan',
+fit.stan.4 = sampling(stanDso, data=lStanData, iter=1000, chains=2, pars=c('betas', 'populationMean', 'sigmaPop', 'sigmaRan',
                                                                             'nu', 'mu', 'log_lik'),
                       cores=2, control=list(adapt_delta=0.99, max_treedepth = 12))
-print(fit.stan.3, c('betas', 'populationMean', 'sigmaPop', 'sigmaRan', 'nu'), digits=3)
+print(fit.stan.4, c('populationMean', 'sigmaPop', 'sigmaRan', 'nu', 'betas'), digits=3)
 
-traceplot(fit.stan.3, 'populationMean')
-traceplot(fit.stan.3, 'sigmaPop')
-traceplot(fit.stan.3, 'sigmaRan')
+traceplot(fit.stan.4, 'populationMean')
+traceplot(fit.stan.4, 'sigmaPop')
+traceplot(fit.stan.4, 'sigmaRan')
 
-### 2 covariates
-m1 = model.matrix(values ~ Coef.1 - 1, data=dfData)
-m2 = model.matrix(values ~ Coef.2 - 1, data=dfData)
-m = cbind(m1, m2)
-
+### equivalent model formulated differently
+m3 = model.matrix(values ~ Coef.3 - 1, data=dfData)
+m4 = model.matrix(values ~ Coef.4 - 1, data=dfData)
+m = cbind(m3, m4)
 lStanData = list(Ntotal=nrow(dfData), Ncol=ncol(m), X=m,
-                 NscaleBatches=2, NBatchMap=c(rep(1, times=nlevels(dfData$Coef.1)),
-                                              rep(2, times=nlevels(dfData$Coef.2))
-                 ),
+                 NscaleBatches=2, NBatchMap=c(rep(1, times=nlevels(dfData$Coef.3)),
+                                              rep(2, times=nlevels(dfData$Coef.4))),
                  y=dfData$values)
 
-fit.stan.2 = sampling(stanDso, data=lStanData, iter=10000, chains=2, pars=c('betas', 'populationMean', 'sigmaPop', 'sigmaRan',
-                                                                            'nu', 'mu', 'log_lik'),
+fit.stan.2 = sampling(stanDso, data=lStanData, iter=1000, chains=2, pars=c('betas', 'populationMean', 'sigmaPop', 'sigmaRan',
+                                                                           'nu', 'mu', 'log_lik'),
                       cores=2, control=list(adapt_delta=0.99, max_treedepth = 12))
-print(fit.stan.2, c('betas', 'populationMean', 'sigmaPop', 'sigmaRan', 'nu'), digits=3)
+print(fit.stan.2, c('populationMean', 'sigmaPop', 'sigmaRan', 'nu', 'betas'), digits=3)
+
+traceplot(fit.stan.2, 'populationMean')
+traceplot(fit.stan.2, 'sigmaPop')
+traceplot(fit.stan.2, 'sigmaRan')
 
 ## just using the one covariate
-m = model.matrix(values ~ Coef.1 - 1, data=dfData)
+m = model.matrix(values ~ Coef.3 - 1, data=dfData)
 
 lStanData = list(Ntotal=nrow(dfData), Ncol=ncol(m), X=m,
-                 NscaleBatches=1, NBatchMap=c(rep(1, times=nlevels(dfData$Coef.1))),
+                 NscaleBatches=1, NBatchMap=c(rep(1, times=nlevels(dfData$Coef.3))),
                  y=dfData$values)
 
-fit.stan.1 = sampling(stanDso, data=lStanData, iter=5000, chains=2, pars=c('betas', 'populationMean', 'sigmaPop', 'sigmaRan',
+fit.stan.1 = sampling(stanDso, data=lStanData, iter=1000, chains=2, pars=c('betas', 'populationMean', 'sigmaPop', 'sigmaRan',
                                                                            'nu', 'mu', 'log_lik'),
                       cores=2)
-print(fit.stan.1, c('betas', 'populationMean', 'sigmaPop', 'sigmaRan', 'nu'), digits=3)
+print(fit.stan.1, c('populationMean', 'sigmaPop', 'sigmaRan', 'nu', 'betas'), digits=3)
+
 
 ## some model scores and comparisons
-compare(fit.stan.3, fit.stan.2, fit.stan.1)
-compare(fit.stan.3, fit.stan.2, fit.stan.1, func = LOO)
-plot(compare(fit.stan.3, fit.stan.2, fit.stan.1))
+compare(fit.stan.4, fit.stan.2, fit.stan.1)
+compare(fit.stan.4, fit.stan.2, fit.stan.1, func = LOO)
+plot(compare(fit.stan.4, fit.stan.2, fit.stan.1))
 
-plot(LOOPk(fit.stan.3) ~ WAIC(fit.stan.3, pointwise = T))
+# plot(LOOPk(fit.stan.2) ~ WAIC(fit.stan.2, pointwise = T))
 
 ## plot coefficients
-ct = coeftab(fit.stan.3, fit.stan.2, fit.stan.1)
-rn = rownames(ct@coefs)
-i = grep('betas', rn)
-plot(ct, pars=rn[i[1:4]])
-plot(ct, pars=rn[i])
+# ct = coeftab(fit.stan.4, fit.stan.2, fit.stan.1)
+# rn = rownames(ct@coefs)
+# i = grep('betas', rn)
+# plot(ct, pars=rn[i[1:10]])
+# plot(ct, pars=rn[i])
 ############### new simulated data
 ###############
 ### generate some posterior predictive data
@@ -297,7 +315,7 @@ simulateOne = function(mu, sigma, nu){
 
 ## sample n values, 1000 times
 mDraws.sim = matrix(NA, nrow = nrow(dfData), ncol=300)
-l = extract(fit.stan.3)
+l = extract(fit.stan.1)
 for (i in 1:300){
   p = sample(1:nrow(l$mu), 1)
   mDraws.sim[,i] = simulateOne(l$mu[p,], 
@@ -306,14 +324,14 @@ for (i in 1:300){
 }
 
 dim(mDraws.sim)
-plot(density(dfData$values), main='posterior predictive density plots, model 3')
+plot(density(dfData$values), main='posterior predictive density plots, model 4')
 apply(mDraws.sim, 2, function(x) lines(density(x), lwd=0.5, col='lightgrey'))
 lines(density(dfData$values))
 
 ## plot residuals
 plot(dfData$values - colMeans(l$mu) ~ colMeans(l$mu))
 lines(lowess(colMeans(l$mu), dfData$values - colMeans(l$mu)))
-apply(l$mu[sample(1:5000, 100),], 1, function(x) {
+apply(l$mu[sample(1:nrow(l$mu), 100),], 1, function(x) {
   lines(lowess(x, dfData$values - x), lwd=0.5, col=2)
 })
 
@@ -334,52 +352,52 @@ apply(mDraws.sim, 2, function(x) {
 })
 
 
-############## differences in coefficients
-## get the coefficient of interest - Modules in our case from the random coefficients section
-mCoef = extract(fit.stan.2)$betas
-dim(mCoef)
-## get the intercept at population level
-iIntercept = as.numeric(extract(fit.stan.2)$populationMean)
-## add the intercept to each coefficient, to get the full coefficient
-mCoef = sweep(mCoef, 1, iIntercept, '+')
+# ############## differences in coefficients
+# ## get the coefficient of interest - Modules in our case from the random coefficients section
+# mCoef = extract(fit.stan.2)$betas
+# dim(mCoef)
+# ## get the intercept at population level
+# iIntercept = as.numeric(extract(fit.stan.2)$populationMean)
+# ## add the intercept to each coefficient, to get the full coefficient
+# mCoef = sweep(mCoef, 1, iIntercept, '+')
+# 
+# ## split the data into the comparisons required
+# d = data.frame(cols=1:ncol(mCoef), mods=c(levels(dfData$Coef.3), levels(dfData$Coef.4)))#, levels(dfData$Coef.4)))
+# # the split is done below on : symbol
+# ## split this factor into sub factors
+# f = strsplit(as.character(d$mods), ':')
+# d = cbind(d, do.call(rbind, f))
+# head(d)
+# 
+# d[d$`2` == 'PC1',]
+# ## main effects + interactions
+# tapply(dfData$values, dfData$Coef.3, mean)
+# iLei.New.PC1 = rowSums(mCoef[,c(1, 5)])
+# iNl.New.PC1 = rowSums(mCoef[,c(3, 5)])
+# iLei.Old.PC1 = rowSums(mCoef[,c(1, 7)])
+# iNl.Old.PC1 = rowSums(mCoef[,c(3, 7)])
+# 
+# # iWT.PC1.av = rowMeans(cbind(iWT.B2.PC1, iWT.B1.PC1))
+# # iKO.PC1.av = rowMeans(cbind(iKO.B2.PC1, iKO.B1.PC1))
+# 
+# ## main effects
+# tapply(dfData$values, dfData$Coef.1, mean)
+# summary(mCoef[,1])
+# summary(mCoef[,3])
+# 
+# tapply(dfData$values, dfData$Coef.2, mean)
+# mean(mCoef[,5])
+# mean(mCoef[,7])
+# ##########################################
 
-## split the data into the comparisons required
-d = data.frame(cols=1:ncol(mCoef), mods=c(levels(dfData$Coef.1), levels(dfData$Coef.2)))#, levels(dfData$Coef.4)))
-# the split is done below on : symbol
-## split this factor into sub factors
-f = strsplit(as.character(d$mods), ':')
-d = cbind(d, do.call(rbind, f))
-head(d)
-
-d[d$`2` == 'PC1',]
-## main effects + interactions
-tapply(dfData$values, dfData$Coef.3, mean)
-iLei.New.PC1 = rowSums(mCoef[,c(1, 5)])
-iNl.New.PC1 = rowSums(mCoef[,c(3, 5)])
-iLei.Old.PC1 = rowSums(mCoef[,c(1, 7)])
-iNl.Old.PC1 = rowSums(mCoef[,c(3, 7)])
-
-# iWT.PC1.av = rowMeans(cbind(iWT.B2.PC1, iWT.B1.PC1))
-# iKO.PC1.av = rowMeans(cbind(iKO.B2.PC1, iKO.B1.PC1))
-
-## main effects
-tapply(dfData$values, dfData$Coef.1, mean)
-summary(mCoef[,1])
-summary(mCoef[,3])
-
-tapply(dfData$values, dfData$Coef.2, mean)
-mean(mCoef[,5])
-mean(mCoef[,7])
-##########################################
-
-m = cbind(extract(fit.stan.3)$sigmaRan, extract(fit.stan.3)$sigmaPop) 
+m = cbind(extract(fit.stan.4)$sigmaRan, extract(fit.stan.4)$sigmaPop) 
 dim(m)
 m = log(m)
-colnames(m) = c('Treatment', 'Batch', 'TrBt', 'Residual')
+colnames(m) = c('Treatment', 'Genotype', 'TrGt', 'TechnicalRep', 'Residual')
 pairs(m, pch=20, cex=0.5, col='grey')
 
-df = stack(data.frame(m[,-4]))
-histogram(~ values | ind, data=df, xlab='Log SD')
+df = stack(data.frame(m[,-5]))
+histogram(~ values | ind, data=df, xlab='Log SD', scales=list(relation='free'))
 
 ## calculate bayesian p-value for this test statistic
 getPValue = function(Trep, Tobs){
