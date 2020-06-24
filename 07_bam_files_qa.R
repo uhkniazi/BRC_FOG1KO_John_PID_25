@@ -74,7 +74,7 @@ n = make.names(paste('CBamScaffold pre duplicate removal data id 46 John rds'))
 lAllBams$meta = dfSample
 lAllBams$desc = paste('CBamScaffold object from bam files before duplicate removal for John PID 25', date())
 n2 = paste0('~/Data/MetaData/', n)
-save(lAllBams, file=n2)
+#save(lAllBams, file=n2)
 
 #lAllBams.pre = lAllBams
 
@@ -84,7 +84,7 @@ save(lAllBams, file=n2)
 # dbListTables(db)
 # dbListFields(db, 'MetaFile')
 # df = data.frame(idData=g_did, name=n, type='rds', location='~/Data/MetaData/',
-#                 comment='CBamScaffold object from bam files before duplicate removal in rna seq data for joana and mouse data')
+#                 comment='CBamScaffold object from bam files before duplicate removal')
 # dbWriteTable(db, name = 'MetaFile', value=df, append=T, row.names=F)
 # dbDisconnect(db)
 # number of reads aligned
@@ -98,7 +98,10 @@ f1 = function(ob){
 dfSample.pre = lAllBams$meta
 lAllBams$desc = NULL
 lAllBams$meta = NULL
-#names(lAllBams) = dfSample.pre$title
+identical(as.character(names(lAllBams)), as.character(dfSample.pre$id))
+temp = strsplit(as.character(dfSample.pre$title), '_')
+temp = sapply(temp, function(x) return(x[5]))
+names(lAllBams) = temp
 
 iReadCount.pre = sapply(lAllBams, f1)
 ### repeat on the bam files after duplicate removal
@@ -107,7 +110,7 @@ gc(reset = T)
 library('RMySQL')
 db = dbConnect(MySQL(), user='rstudio', password='12345', dbname='Projects', host='127.0.0.1')
 q = paste0('select Sample.id as sid, Sample.group1, Sample.group2, Sample.group3, Sample.title, Sample.description, File.* from Sample, File
-           where (Sample.idData = 43) AND (File.idSample = Sample.id AND File.type like "%_sort%")')
+           where (Sample.idData = 46) AND (File.idSample = Sample.id AND File.type like "%_sort%")')
 dfSample = dbGetQuery(db, q)
 nrow(dfSample)
 dfSample
@@ -121,7 +124,7 @@ i = grep('q10_sort_rd.bam', dfSample$name)
 dfSample = dfSample[i,]
 #### set working directory to appropriate location with bam files
 setwd(gcswd)
-setwd('dataExternal/bams/')
+setwd('dataExternal/remote/Aligned/')
 csFiles = list.files('.', pattern = '*.bam$')
 # check if these files match the file names in database
 table(dfSample$name %in% csFiles)
@@ -148,11 +151,11 @@ lAllBams = lapply(csFiles, function(x){
 names(lAllBams) = dfSample$id
 
 setwd(gcswd)
-n = make.names(paste('CBamScaffold after duplicate removal data id 43 alex rds'))
+n = make.names(paste('CBamScaffold after duplicate removal data id 46 john rds'))
 lAllBams$meta = dfSample
-lAllBams$desc = paste('CBamScaffold object from bam files after duplicate removal for alex', date())
+lAllBams$desc = paste('CBamScaffold object from bam files after duplicate removal for John PID 25', date())
 n2 = paste0('~/Data/MetaData/', n)
-save(lAllBams, file=n2)
+#save(lAllBams, file=n2)
 
 # comment out as this has been done once
 # library('RMySQL')
@@ -160,7 +163,7 @@ save(lAllBams, file=n2)
 # dbListTables(db)
 # dbListFields(db, 'MetaFile')
 # df = data.frame(idData=g_did, name=n, type='rds', location='~/Data/MetaData/',
-#                 comment='CBamScaffold object from bam files after duplicate removal in rna seq data for alex human data')
+#                 comment='CBamScaffold object from bam files after duplicate removal')
 # dbWriteTable(db, name = 'MetaFile', value=df, append=T, row.names=F)
 # dbDisconnect(db)
 
@@ -170,8 +173,10 @@ setwd(gcswd)
 dfSample = lAllBams$meta
 lAllBams$desc = NULL
 lAllBams$meta = NULL
-names(lAllBams) = dfSample$sid
-
+identical(as.character(names(lAllBams)), as.character(dfSample$id))
+temp = strsplit(as.character(dfSample$title), '_')
+temp = sapply(temp, function(x) return(x[5]))
+names(lAllBams) = temp
 
 pdf(file='results/bam.qa.pdf')
 par(mfrow=c(2,2))
@@ -276,10 +281,6 @@ names(lMat.ordered) = cvSeqnames
 head(dfSample)
 fGroups = factor(dfSample$group1)
 fGroups = factor(dfSample$group2)
-fGroups = factor((gsub('\\d+.+(HOM|WT_KLS_\\d).+(KLS_\\d)', '\\1_\\2', dfSample$group3)))
-cvDesc = dfSample$description
-lDesc = strsplit(cvDesc, ';')
-fGroups = factor(sapply(lDesc, function(x) return(x[4])))
 levels(fGroups)
 fGroups = fGroups:factor(dfSample$group2)
 names(lAllBams)
