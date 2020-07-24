@@ -170,19 +170,28 @@ lStanData = list(Ntotal=nrow(dfData),
                  #gammaShape=l$shape, gammaRate=l$rate,
                  intercept = mean(log(dfData$values+0.5)), intercept_sd= sd(log(dfData$values+0.5))*3)
 
+initf = function(chain_id = 1) {
+  list(sigmaRan1 = rep(1, times=lStanData$NScaleBatches1),
+       sigmaRan2= rep(0.1, times=lStanData$NScaleBatches2),
+       rGroupsJitter1_scaled = rep(0, times=lStanData$Nclusters1),
+       rGroupsJitter2_scaled = rep(0, times=lStanData$Nclusters2),
+       phi_scaled=rep(15, times=lStanData$Nphi))
+}
+
+
 ptm = proc.time()
 
-fit.stan = sampling(stanDso, data=lStanData, iter=1500, chains=4,
+fit.stan = sampling(stanDso, data=lStanData, iter=800, chains=4,
                     pars=c('sigmaRan1',
-                           'sigmaRan2',
+                           #'sigmaRan2',
                            'phi',
                            #'mu',
                            'rGroupsJitter1',
-                           'rGroupsJitter2',
+                           #'rGroupsJitter2',
                            'betas'
                            #'phi_scaled'
                     ),
-                    cores=4, control=list(adapt_delta=0.99, max_treedepth = 11))#, init=initf)
+                    cores=4, control=list(adapt_delta=0.99, max_treedepth = 11), init=initf)
 save(fit.stan, file='results/fit.stan.nb_3Mar.rds')
 ptm.end = proc.time()
 print(fit.stan, c('sigmaRan1'), digits=3)

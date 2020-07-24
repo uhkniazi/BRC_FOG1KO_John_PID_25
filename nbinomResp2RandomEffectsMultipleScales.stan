@@ -26,23 +26,36 @@ data {
 parameters {
   // parameters to estimate in the model
   real betas; // constant intercept term
-  real<lower=0.01> sigmaRan1[NScaleBatches1]; // random effect standard deviations for sub-batches in group 1
-  real<lower=0.01> sigmaRan2[NScaleBatches2]; // random effect standard deviations for sub-batches in group 2
-  vector[Nclusters1] rGroupsJitter1; // number of random jitters for each level of cluster/group 1
-  vector[Nclusters2] rGroupsJitter2; // number of random jitters for each level of cluster/group 2
-  real<lower=0> phi_scaled[Nphi]; // over dispersion on square root scale 
+  vector<lower=0.01>[NScaleBatches1] sigmaRan1; // random effect standard deviations for sub-batches in group 1
+  vector<lower=0.01>[NScaleBatches2] sigmaRan2; // random effect standard deviations for sub-batches in group 2
+  real<lower=0> phi_scaled[Nphi]; // over dispersion on square root scale
+  vector[Nclusters1] rGroupsJitter1_scaled; // number of random jitters for each level of cluster/group 1
+  vector[Nclusters2] rGroupsJitter2_scaled; // number of random jitters for each level of cluster/group 2
 }
 transformed parameters {
   vector[Ntotal] mu; // fitted values from linear predictor
   real phi[Nphi];
+  vector[Nclusters1] sigmaRan1_expanded; 
+  vector[Nclusters2] sigmaRan2_expanded;
+  vector[Nclusters1] rGroupsJitter1; // number of random jitters for each level of cluster/group 1
+  vector[Nclusters2] rGroupsJitter2; // number of random jitters for each level of cluster/group 2
+  
   for (i in 1:Nphi) {
     phi[i] = phi_scaled[i]^2;
     }
+  sigmaRan1_expanded = sigmaRan1[NBatchMap1];
+  sigmaRan2_expanded = sigmaRan2[NBatchMap2];
+  for(i in 1:Nclusters1){
+    rGroupsJitter1[i] = rGroupsJitter1_scaled[i]*sigmaRan1_expanded[i];
+  }
+  
+  for(i in 1:Nclusters2){
+    rGroupsJitter2[i] = rGroupsJitter2_scaled[i]*sigmaRan2_expanded[i];
+  }
+  
   mu = exp(betas + rGroupsJitter1[NgroupMap1] + rGroupsJitter2[NgroupMap2]);
 }
 model {
-  real sigmaRan1_expanded[Nclusters1]; 
-  real sigmaRan2_expanded[Nclusters2];
   //sigmaRan1 ~ gamma(gammaShape, gammaRate);
   sigmaRan1 ~ exponential(1);
   sigmaRan2 ~ exponential(1);
@@ -50,11 +63,8 @@ model {
   phi_scaled ~ normal(0, 10); // weak prior on square root scale
   
   // random effects sample
-  sigmaRan1_expanded = sigmaRan1[NBatchMap1];
-  rGroupsJitter1 ~ normal(0, sigmaRan1_expanded);
-  
-  sigmaRan2_expanded = sigmaRan2[NBatchMap2];
-  rGroupsJitter2 ~ normal(0, sigmaRan2_expanded);
+  rGroupsJitter1_scaled ~ normal(0, 1);
+  rGroupsJitter2_scaled ~ normal(0, 1);
   
   // likelihood function
   y ~ neg_binomial_2(mu, phi[NphiMap]);
