@@ -192,7 +192,7 @@ fit.stan = sampling(stanDso, data=lStanData, iter=800, chains=4,
                            #'phi_scaled'
                     ),
                     cores=4, control=list(adapt_delta=0.99, max_treedepth = 11), init=initf)
-save(fit.stan, file='results/fit.stan.nb_3Mar.rds')
+#save(fit.stan, file='results/fit.stan.nb_3Mar.rds')
 ptm.end = proc.time()
 print(fit.stan, c('sigmaRan1'), digits=3)
 print(fit.stan, c('phi'), digits=3)
@@ -229,6 +229,8 @@ d = data.frame(cols=1:ncol(mCoef), mods=levels(dfData$Coef.1))
 f = strsplit(as.character(d$mods), ':')
 d = cbind(d, do.call(rbind, f))
 head(d)
+d$`1` = d$`1`:d$`2`
+d = d[,-4]
 colnames(d) = c(colnames(d)[1:2], c('fBatch', 'ind'))
 str(d)
 d$split = factor(d$ind)
@@ -237,7 +239,7 @@ levels(d$fBatch)
 ## repeat this for each comparison
 
 ## get a p-value for each comparison
-l = tapply(d$cols, d$split, FUN = function(x, base='Non-lesional', deflection='Lesional') {
+l = tapply(d$cols, d$split, FUN = function(x, base='n.i:MELWT', deflection='ind:MELWT') {
   c = x
   names(c) = as.character(d$fBatch[c])
   dif = getDifference(ivData = mCoef[,c[deflection]], ivBaseline = mCoef[,c[base]])
@@ -254,17 +256,17 @@ dfResults$adj.P.Val = p.adjust(dfResults$pvalue, method='BH')
 ### plot the results
 dfResults$logFC = dfResults$difference
 dfResults$P.Value = dfResults$pvalue
-library(org.Hs.eg.db)
+library(org.Mm.eg.db)
 ## remove X from annotation names
 dfResults$ind = gsub('X', '', as.character(dfResults$ind))
-df = AnnotationDbi::select(org.Hs.eg.db, keys = as.character(dfResults$ind), columns = 'SYMBOL', keytype = 'ENTREZID')
+df = AnnotationDbi::select(org.Mm.eg.db, keys = as.character(dfResults$ind), columns = 'SYMBOL', keytype = 'ENTREZID')
 i = match(dfResults$ind, df$ENTREZID)
 df = df[i,]
 dfResults$SYMBOL = df$SYMBOL
 identical(dfResults$ind, df$ENTREZID)
 ## produce the plots 
-f_plotVolcano(dfResults, 'lei vs nl')#, fc.lim=c(-2.5, 2.5))
-f_plotVolcano(dfResults, 'lei vs nl', fc.lim=range(dfResults$logFC))
+f_plotVolcano(dfResults, 'ind:WT vs ni:WT')#, fc.lim=c(-2.5, 2.5))
+f_plotVolcano(dfResults, 'ind:WT vs ni:WT', fc.lim=range(dfResults$logFC))
 
 m = tapply(dfData$values, dfData$ind, mean)
 i = match(rownames(dfResults), names(m))
@@ -272,19 +274,25 @@ m = m[i]
 identical(names(m), rownames(dfResults))
 plotMeanFC(log(m), dfResults, 0.01, 'lei vs nl')
 table(dfResults$adj.P.Val < 0.01)
+quantile(round(abs(dfResults$logFC),3), 0:10/10)
+table(dfResults$adj.P.Val < 0.01 & abs(dfResults$logFC) > 0.5)
 ## save the results 
-write.csv(dfResults, file='results/reverse/DEAnalysisLesionalVsNonLesional.xls')
+write.csv(dfResults, file='results/DEAnalysis_ind:MELWTVSn.i:MELWT.xls')
 
 ######### do a comparison with deseq2
 str(dfSample.2)
-dfDesign = data.frame(Treatment = factor(dfSample.2$group1, levels = c('Non-lesional', 'Lesional')), Patient=factor(dfSample.2$group2),
+f = as.character(dfSample.2$fReplicates)
+f = gsub('(.+)-\\d+$', replacement = '\\1', f)
+dfDesign = data.frame(Treatment = factor(dfSample.2$group1):factor(dfSample.2$group2), 
+                      Patient=factor(f),
                       row.names=colnames(mData))
 
-oDseq = DESeqDataSetFromMatrix(mData, dfDesign, design = ~ Treatment + Patient)
+oDseq = DESeqDataSetFromMatrix(mData, dfDesign, design = ~ Treatment)# + Patient)
 oDseq = DESeq(oDseq)
 
 plotDispEsts(oDseq)
-oRes = results(oDseq, contrast = c('Treatment', 'Lesional', 'Non-lesional'))
+levels(dfDesign$Treatment)
+oRes = results(oDseq, contrast = c('Treatment', 'ind:MELWT', 'n.i:MELWT'))
 plotMA(oRes)
 temp = as.data.frame(oRes)
 i = match((dfResults$ind), rownames(temp))
