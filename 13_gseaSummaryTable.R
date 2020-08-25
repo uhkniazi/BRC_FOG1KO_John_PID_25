@@ -23,10 +23,10 @@ ldfData.up = ldfData[grepl(lFiles, pattern = 'upregulated')]
 ldfData.down = ldfData[grepl(lFiles, pattern = 'downregulated')]
 
 ## set the names for each contrast
-sn = gsub('results//(.+Vs.+)_up.+', '\\1', names(ldfData.up))
+sn = gsub('results//(.+VS.+)_up.+', '\\1', names(ldfData.up))
 names(ldfData.up) = sn
 
-sn = gsub('results//(.+Vs.+)_down.+', '\\1', names(ldfData.down))
+sn = gsub('results//(.+VS.+)_down.+', '\\1', names(ldfData.down))
 names(ldfData.down) = sn
 
 ## create a table/matrix of p-values
@@ -101,7 +101,7 @@ write.csv(dfMerged.c2, file='results/gsea_msigdb_c2_merged.xls')
 table(dfMerged.c2$groups)
 t = rowSums(mMerged.c2.bin)
 table(t, dfMerged.c2$groups)
-dfMerged.c2.sub = dfMerged.c2[dfMerged.c2$groups != 77,]
+dfMerged.c2.sub = dfMerged.c2[dfMerged.c2$groups != 60,]
 
 # table(dfMerged.c5$groups)
 # t = rowSums(mMerged.c5.bin)
