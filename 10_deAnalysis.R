@@ -112,11 +112,11 @@ mData.norm = sweep(mData, 2, sf, '/')
 ## delete sample section after testing
 mData.norm = round(mData.norm, 0)
 
-set.seed(123)
-i = sample(1:nrow(mData.norm), 10, replace = F)
-dfData = data.frame(t(mData.norm[i,]))
+# set.seed(123)
+# i = sample(1:nrow(mData.norm), 10, replace = F)
+# dfData = data.frame(t(mData.norm[i,]))
 
-#dfData = data.frame(t(mData.norm))
+dfData = data.frame(t(mData.norm))
 dim(dfData)
 dfData = stack(dfData)
 
