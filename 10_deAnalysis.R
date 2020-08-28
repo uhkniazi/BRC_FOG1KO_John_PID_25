@@ -65,15 +65,36 @@ identical(colnames(mData), as.character(dfSample.2$fReplicates))
 dim(dfSample.2)
 dfSample.2 = droplevels.data.frame(dfSample.2)
 
+## merge the second set of technical replicates 
+## at the library prep level
+str(dfSample.2)
+f = as.character(dfSample.2$fReplicates)
+f = gsub('(.+)-\\d+$', replacement = '\\1', f)
+f = factor(f); levels(f)
+i = seq_along(1:ncol(mData))
+m = tapply(i, f, function(x) {
+  return(x)
+})
+
+mData = sapply(m, function(x){
+  return(rowSums(mData[,x]))
+})
+
+# get a shorter version of dfSample after adding technical replicates
+dfSample.2 = dfSample.2[sapply(m, function(x) return(x[1])), ]
+identical(colnames(mData), levels(f))
+dim(dfSample.2)
+dfSample.2 = droplevels.data.frame(dfSample.2)
+
 ## normalise the data
 # drop the rows where average across rows is less than 3
 i = rowMeans(mData)
 table( i < 3)
 # FALSE  TRUE 
-# 12364 12230 
+# 12929 11665 
 mData = mData[!(i< 3),]
 dim(mData)
-# [1] 12364     48
+# [1] 12929    24
 
 ivProb = apply(mData, 1, function(inData) {
   inData[is.na(inData) | !is.finite(inData)] = 0
@@ -88,16 +109,14 @@ library(DESeq2)
 sf = estimateSizeFactorsForMatrix(mData)
 mData.norm = sweep(mData, 2, sf, '/')
 
-identical(colnames(mData.norm), as.character(dfSample.2$fReplicates))
-
 ## delete sample section after testing
 mData.norm = round(mData.norm, 0)
 
-# set.seed(123)
-# i = sample(1:nrow(mData.norm), 10, replace = F)
-# dfData = data.frame(t(mData.norm[i,]))
+set.seed(123)
+i = sample(1:nrow(mData.norm), 10, replace = F)
+dfData = data.frame(t(mData.norm[i,]))
 
-dfData = data.frame(t(mData.norm))
+#dfData = data.frame(t(mData.norm))
 dim(dfData)
 dfData = stack(dfData)
 
@@ -106,16 +125,9 @@ str(dfSample.2)
 dfData$fTreatment = factor(dfSample.2$group1)
 dfData$fGenotype = factor(dfSample.2$group2)
 dfData$fTrGt = factor(dfSample.2$group1):factor(dfSample.2$group2)
-## each biological source contributed 2 samples (technical replicates)
-## control for those using sample IDs
-f = as.character(dfSample.2$fReplicates)
-f = gsub('(.+)-\\d+$', replacement = '\\1', f)
-dfData$fSampleID = factor(f)
-xtabs(~ f + dfSample.2$group2 + dfSample.2$group1)
 dfData = droplevels.data.frame(dfData)
 
 dfData$Coef.1 = factor(dfData$fTrGt:dfData$ind)
-dfData$Coef.2 = factor(dfData$fSampleID:dfData$ind)
 str(dfData)
 
 # # setup the model
@@ -135,7 +147,7 @@ library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
-stanDso = rstan::stan_model(file='nbinomResp2RandomEffectsMultipleScales.stan')
+stanDso = rstan::stan_model(file='nbinomResp1RandomEffectsMultipleScales.stan')
 
 ## calculate hyperparameters for variance of coefficients
 # l = gammaShRaFromModeSD(sd(log(dfData$values+0.5)), 2*sd(log(dfData$values+0.5)))
@@ -153,17 +165,17 @@ stanDso = rstan::stan_model(file='nbinomResp2RandomEffectsMultipleScales.stan')
 ## this is done to avoid loops in the stan script to map the scale parameters
 ## of each ind/gene to the respective set of coefficients for jitters
 d = dfData[!duplicated(dfData$Coef.1), ]
-d2 = dfData[!duplicated(dfData$Coef.2), ]
+#d2 = dfData[!duplicated(dfData$Coef.2), ]
 
 lStanData = list(Ntotal=nrow(dfData), 
                  Nclusters1=nlevels(dfData$Coef.1),
-                 Nclusters2=nlevels(dfData$Coef.2),
+                 #Nclusters2=nlevels(dfData$Coef.2),
                  NScaleBatches1 = nlevels(dfData$ind), # to add a separate scale term for each gene
-                 NScaleBatches2 = nlevels(dfData$ind), # to add a separate scale term for each gene
+                 #NScaleBatches2 = nlevels(dfData$ind), # to add a separate scale term for each gene
                  NgroupMap1=as.numeric(dfData$Coef.1),
-                 NgroupMap2=as.numeric(dfData$Coef.2),
+                 #NgroupMap2=as.numeric(dfData$Coef.2),
                  NBatchMap1=as.numeric(d$ind), # this is where we use the second level mapping
-                 NBatchMap2=as.numeric(d2$ind), # this is where we use the second level mapping
+                 #NBatchMap2=as.numeric(d2$ind), # this is where we use the second level mapping
                  Nphi=nlevels(dfData$ind),
                  NphiMap=as.numeric(dfData$ind),
                  y=dfData$values, 
@@ -172,9 +184,9 @@ lStanData = list(Ntotal=nrow(dfData),
 
 initf = function(chain_id = 1) {
   list(sigmaRan1 = rep(1, times=lStanData$NScaleBatches1),
-       sigmaRan2= rep(0.1, times=lStanData$NScaleBatches2),
+       #sigmaRan2= rep(0.1, times=lStanData$NScaleBatches2),
        rGroupsJitter1_scaled = rep(0, times=lStanData$Nclusters1),
-       rGroupsJitter2_scaled = rep(0, times=lStanData$Nclusters2),
+       #rGroupsJitter2_scaled = rep(0, times=lStanData$Nclusters2),
        phi_scaled=rep(15, times=lStanData$Nphi))
 }
 
@@ -191,7 +203,8 @@ fit.stan = sampling(stanDso, data=lStanData, iter=800, chains=4,
                            'betas'
                            #'phi_scaled'
                     ),
-                    cores=4, control=list(adapt_delta=0.99, max_treedepth = 11), init=initf)
+                    cores=4, #control=list(adapt_delta=0.99, max_treedepth = 11),
+                    init=initf)
 #save(fit.stan, file='results/fit.stan.nb_3Mar.rds')
 ptm.end = proc.time()
 print(fit.stan, c('sigmaRan1'), digits=3)
@@ -239,7 +252,7 @@ levels(d$fBatch)
 ## repeat this for each comparison
 
 ## get a p-value for each comparison
-l = tapply(d$cols, d$split, FUN = function(x, base='n.i:MELWT', deflection='ind:MELWT') {
+l = tapply(d$cols, d$split, FUN = function(x, base='n.i:MELWT', deflection='n.i:C8') {
   c = x
   names(c) = as.character(d$fBatch[c])
   dif = getDifference(ivData = mCoef[,c[deflection]], ivBaseline = mCoef[,c[base]])
