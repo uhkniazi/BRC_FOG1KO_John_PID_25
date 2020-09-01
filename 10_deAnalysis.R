@@ -193,7 +193,7 @@ initf = function(chain_id = 1) {
 
 ptm = proc.time()
 
-fit.stan = sampling(stanDso, data=lStanData, iter=800, chains=4,
+fit.stan = sampling(stanDso, data=lStanData, iter=1000, chains=4,
                     pars=c('sigmaRan1',
                            #'sigmaRan2',
                            'phi',
@@ -252,7 +252,7 @@ levels(d$fBatch)
 ## repeat this for each comparison
 
 ## get a p-value for each comparison
-l = tapply(d$cols, d$split, FUN = function(x, base='n.i:MELWT', deflection='n.i:C8') {
+l = tapply(d$cols, d$split, FUN = function(x, base='n.i:MELWT', deflection='ind:MELWT') {
   c = x
   names(c) = as.character(d$fBatch[c])
   dif = getDifference(ivData = mCoef[,c[deflection]], ivBaseline = mCoef[,c[base]])
@@ -290,14 +290,14 @@ table(dfResults$adj.P.Val < 0.01)
 quantile(round(abs(dfResults$logFC),3), 0:10/10)
 table(dfResults$adj.P.Val < 0.01 & abs(dfResults$logFC) > 0.5)
 ## save the results 
-write.csv(dfResults, file='results/DEAnalysis_ind:MELWTVSn.i:MELWT.xls')
+write.csv(dfResults, file='results/DEAnalysis_ind:G9VSn.i:G9.xls')
 
 ######### do a comparison with deseq2
 str(dfSample.2)
-f = as.character(dfSample.2$fReplicates)
-f = gsub('(.+)-\\d+$', replacement = '\\1', f)
+# f = as.character(dfSample.2$fReplicates)
+# f = gsub('(.+)-\\d+$', replacement = '\\1', f)
 dfDesign = data.frame(Treatment = factor(dfSample.2$group1):factor(dfSample.2$group2), 
-                      Patient=factor(f),
+                      #Patient=factor(f),
                       row.names=colnames(mData))
 
 oDseq = DESeqDataSetFromMatrix(mData, dfDesign, design = ~ Treatment)# + Patient)
