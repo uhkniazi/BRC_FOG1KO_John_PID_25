@@ -101,7 +101,7 @@ write.csv(dfMerged.c2, file='results/gsea_msigdb_c2_merged.xls')
 table(dfMerged.c2$groups)
 t = rowSums(mMerged.c2.bin)
 table(t, dfMerged.c2$groups)
-dfMerged.c2.sub = dfMerged.c2[dfMerged.c2$groups != 60,]
+dfMerged.c2.sub = dfMerged.c2[dfMerged.c2$groups != 62,]
 
 # table(dfMerged.c5$groups)
 # t = rowSums(mMerged.c5.bin)

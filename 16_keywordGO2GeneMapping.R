@@ -68,30 +68,37 @@ identical(colnames(mData), as.character(dfSample.2$fReplicates))
 dim(dfSample.2)
 dfSample.2 = droplevels.data.frame(dfSample.2)
 
+## merge the second set of technical replicates 
+## at the library prep level
+str(dfSample.2)
+f = as.character(dfSample.2$fReplicates)
+f = gsub('(.+)-\\d+$', replacement = '\\1', f)
+f = factor(f); levels(f)
+i = seq_along(1:ncol(mData))
+m = tapply(i, f, function(x) {
+  return(x)
+})
+
+mData = sapply(m, function(x){
+  return(rowSums(mData[,x]))
+})
+
+# get a shorter version of dfSample after adding technical replicates
+dfSample.2 = dfSample.2[sapply(m, function(x) return(x[1])), ]
+identical(colnames(mData), levels(f))
+dim(dfSample.2)
+dfSample.2 = droplevels.data.frame(dfSample.2)
+
 ## normalise the data
 # drop the rows where average across rows is less than 3
 i = rowMeans(mData)
 table( i < 3)
-# FALSE  TRUE 
-# 12364 12230 
 mData = mData[!(i< 3),]
 dim(mData)
-# [1] 12364     48
-
-ivProb = apply(mData, 1, function(inData) {
-  inData[is.na(inData) | !is.finite(inData)] = 0
-  inData = as.logical(inData)
-  lData = list('success'=sum(inData), fail=sum(!inData))
-  return(mean(rbeta(1000, lData$success + 0.5, lData$fail + 0.5)))
-})
-
-hist(ivProb)
 
 library(DESeq2)
 sf = estimateSizeFactorsForMatrix(mData)
 mData.norm = sweep(mData, 2, sf, '/')
-
-identical(colnames(mData.norm), as.character(dfSample.2$fReplicates))
 ###########################################################
 
 ## load the common binary matrix of DE genes created in earlier results
@@ -154,7 +161,7 @@ close(oFile.go)
 
 #######################################################
 ####### find particular types of genes from pathway keyword search
-#dfGO = AnnotationDbi::select(org.Mm.eg.db, keys = 'Zfpm1', columns = c('GO'), keytype = 'SYMBOL')
+dfGO = AnnotationDbi::select(org.Mm.eg.db, keys = 'Zfpm1', columns = c('GO'), keytype = 'SYMBOL')
 dfGO = AnnotationDbi::select(org.Mm.eg.db, keys = rownames(dfCommonGenes), columns = c('GO'), keytype = 'ENTREZID')
 dfGO = dfGO[dfGO$ONTOLOGY == 'BP', ]
 dfGO = na.omit(dfGO)
