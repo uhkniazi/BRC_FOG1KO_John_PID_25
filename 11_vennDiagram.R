@@ -160,3 +160,52 @@ rownames(dfCommonGenes) = (gsub(pattern = '^X', replacement = '', x = rownames(d
 head(dfCommonGenes)
 
 write.csv(dfCommonGenes, file='results/commonDEGenes.xls')
+
+dfCommonGenes = read.csv('results/commonDEGenes.xls', header=T, stringsAsFactors = F)
+colnames(dfCommonGenes)[1] = 'ENTREZID'
+data.frame(colnames(dfCommonGenes))
+
+m = as.matrix(dfCommonGenes[,c(2, 4, 6)])
+head(m)
+i = which(rowSums(m) >= 2)
+length(i)
+
+dfCommonGenes.ind = dfCommonGenes[i,]
+dim(dfCommonGenes.ind)
+
+m = as.matrix(dfCommonGenes[,c(9, 10, 11)])
+head(m)
+i = which(rowSums(m) >= 2)
+length(i)
+
+dfCommonGenes.ni = dfCommonGenes[i,]
+dim(dfCommonGenes.ni)
+
+table(dfCommonGenes.ni$Symbol %in% dfCommonGenes.ind$Symbol)
+
+## combine the p-values
+names(ldfData)
+cvTitle
+names(ldfData)[c(1,3,5)]
+pv = sapply(ldfData[c(1, 3, 5)], function(x) return(x$adj.P.Val))
+rownames(pv) = ldfData[[1]]$ind
+pv = pv[as.character(dfCommonGenes.ind$ENTREZID), ]
+identical(rownames(pv), as.character(dfCommonGenes.ind$ENTREZID))
+fp = apply(pv, 1, f_fishersMethod)
+hist(fp)
+dfCommonGenes.ind$f.pvalue = fp
+
+## for non-induced group
+names(ldfData)
+cvTitle
+names(ldfData)[c(8, 9, 10)]
+pv = sapply(ldfData[c(8, 9, 10)], function(x) return(x$adj.P.Val))
+rownames(pv) = ldfData[[1]]$ind
+pv = pv[as.character(dfCommonGenes.ni$ENTREZID), ]
+identical(rownames(pv), as.character(dfCommonGenes.ni$ENTREZID))
+fp = apply(pv, 1, f_fishersMethod)
+hist(fp)
+dfCommonGenes.ni$f.pvalue = fp
+
+write.csv(dfCommonGenes.ind, file='results/commonDEGenes_induced_2of3.xls')
+write.csv(dfCommonGenes.ni, file='results/commonDEGenes_notInduced_2of3.xls')
