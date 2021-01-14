@@ -64,7 +64,7 @@ colnames(dfCommonGenes)[1] = 'ENTREZID'
 data.frame(colnames(dfCommonGenes))
 
 ## choose the appropriate combination of contrasts
-m = as.matrix(dfCommonGenes[,c(9, 10, 11)])
+m = as.matrix(dfCommonGenes[,c(3, 5, 7)])
 head(m)
 i = which(rowSums(m) >= 2)
 length(i)
@@ -73,15 +73,15 @@ dfCommonGenes.ind = dfCommonGenes[i,]
 dim(dfCommonGenes.ind)
 
 names(ldfData)
-names(ldfData)[c(8, 9, 10)]
+names(ldfData)[c(2, 4, 6)]
 ## extract the relevant information
-pv = sapply(ldfData[c(8, 9, 10)], function(x) return(x$adj.P.Val))
+pv = sapply(ldfData[c(2, 4, 6)], function(x) return(x$adj.P.Val))
 rownames(pv) = ldfData[[1]]$ind
 pv = pv[as.character(dfCommonGenes.ind$ENTREZID), ]
 colnames(pv) = colnames(m)
 identical(rownames(pv), as.character(dfCommonGenes.ind$ENTREZID))
 
-fc = sapply(ldfData[c(8, 9, 10)], function(x) return(x$logFC))
+fc = sapply(ldfData[c(2, 4, 6)], function(x) return(x$logFC))
 rownames(fc) = ldfData[[1]]$ind
 fc = fc[as.character(dfCommonGenes.ind$ENTREZID), ]
 colnames(fc) = colnames(m)
@@ -132,6 +132,6 @@ dfCommonGenes.ind$f.pvalue = fpC
 dfCommonGenes.ind$Outliers = fDrop
 data.frame(colnames(dfCommonGenes.ind))
 colnames(fc)
-temp = dfCommonGenes.ind[,c(1, 9, 10, 11, 14:17)]
+temp = dfCommonGenes.ind[,c(1, 3, 5, 7, 14:17)]
 
-write.csv(temp, file='results/commonDEGenes_not_induced_2of3_logFC_average.xls')
+write.csv(temp, file='results/commonDEGenes_longitudinal_induced_vs_not_induced_2of3_logFC_average.xls')
