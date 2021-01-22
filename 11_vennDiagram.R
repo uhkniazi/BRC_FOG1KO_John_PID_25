@@ -35,18 +35,18 @@ dfCommonGenes.ind = dfCommonGenes.ind[,c(1, 10)]
 colnames(dfCommonGenes.ind)[1] = 'ENTREZID'
 rownames(dfCommonGenes.ind) = dfCommonGenes.ind$ENTREZID
 names(ldfData)
-names(ldfData)[c(1, 3, 5)]
+names(ldfData)[c(8, 9, 10)]
 ## extract the relevant information
-pv = sapply(ldfData[c(1, 3, 5)], function(x) return(x$adj.P.Val))
+pv = sapply(ldfData[c(8, 9, 10)], function(x) return(x$adj.P.Val))
 rownames(pv) = ldfData[[1]]$ind
 pv = pv[as.character(dfCommonGenes.ind$ENTREZID), ]
-colnames(pv) = cvTitle[c(1, 3, 5)]
+colnames(pv) = cvTitle[c(8, 9, 10)]
 identical(rownames(pv), as.character(dfCommonGenes.ind$ENTREZID))
 
-fc = sapply(ldfData[c(1, 3, 5)], function(x) return(x$logFC))
+fc = sapply(ldfData[c(8, 9, 10)], function(x) return(x$logFC))
 rownames(fc) = ldfData[[1]]$ind
 fc = fc[as.character(dfCommonGenes.ind$ENTREZID), ]
-colnames(fc) = cvTitle[c(1, 3, 5)]
+colnames(fc) = cvTitle[c(8, 9, 10)]
 identical(rownames(fc), rownames(pv))
 
 ### apply the filters
@@ -100,4 +100,4 @@ temp = ldfData$`results//DEAnalysis_ind:MELWTVSn.i:MELWT.xls`
 dfCommonGenes.ind$IndWtVsNiWt_logFC = temp$logFC
 dfCommonGenes.ind$IndWtVsNiWt_adj.P.Val = temp$adj.P.Val
 
-write.csv(temp, file='results/crossSectional_T2_KOmerged.xls')
+write.csv(temp, file='results/crossSectional_T1_KOmerged.xls')
