@@ -26,8 +26,8 @@ cvTitle = gsub('.xls', '', cvTitle)
 
 names(ldfData)
 
-cvTitle[c(1, 3, 5)]
-cvTitle[c(2, 4, 6)]
+#cvTitle[c(1, 3, 5)]
+#cvTitle[c(2, 4, 6)]
 cvTitle[c(8, 9, 10)]
 
 dfCommonGenes.ind = ldfData$`results//DEAnalysis_ind:C8VSind:MELWT.xls`
@@ -100,4 +100,4 @@ temp = ldfData$`results//DEAnalysis_ind:MELWTVSn.i:MELWT.xls`
 dfCommonGenes.ind$IndWtVsNiWt_logFC = temp$logFC
 dfCommonGenes.ind$IndWtVsNiWt_adj.P.Val = temp$adj.P.Val
 
-write.csv(temp, file='results/crossSectional_T1_KOmerged.xls')
+write.csv(dfCommonGenes.ind, file='results/niKoVSniWt_merged.xls')
