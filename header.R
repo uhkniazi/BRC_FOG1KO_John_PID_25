@@ -59,3 +59,9 @@ plotMeanFC = function(m, dat, p.cut, title){
   #mh = cut(m, breaks=quantile(m, 0:50/50), include.lowest = T)
   plot(m, dat$logFC, col=col, pch=20, main=title, xlab='log Mean', ylab='logFC', ylim=c(-2, 2), cex=0.6)
 }
+
+# Name: f_fishersMethod
+# Args: P.Values from hypothesis tests to combine
+# Rets: Fisher P.value
+# Desc: read here for details: https://mikelove.wordpress.com/2012/03/12/combining-p-values-fishers-method-sum-of-p-values-binomial/
+f_fishersMethod = function(p.vals) pchisq(-2 * sum(log(p.vals)),df=2*length(p.vals),lower=FALSE)

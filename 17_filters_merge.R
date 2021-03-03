@@ -26,27 +26,32 @@ cvTitle = gsub('.xls', '', cvTitle)
 
 names(ldfData)
 
-#cvTitle[c(1, 3, 5)]
-#cvTitle[c(2, 4, 6)]
+cvTitle[c(1, 3, 5)]
+cvTitle[c(2, 4, 6)]
 cvTitle[c(8, 9, 10)]
+
+## choose the index number for the contrasts of interest
+iIndex = c(1, 3, 5)
+cvTitle[iIndex]
 
 dfCommonGenes.ind = ldfData$`results//DEAnalysis_ind:C8VSind:MELWT.xls`
 dfCommonGenes.ind = dfCommonGenes.ind[,c(1, 10)]
 colnames(dfCommonGenes.ind)[1] = 'ENTREZID'
 rownames(dfCommonGenes.ind) = dfCommonGenes.ind$ENTREZID
 names(ldfData)
-names(ldfData)[c(8, 9, 10)]
+names(ldfData)[iIndex]
 ## extract the relevant information
-pv = sapply(ldfData[c(8, 9, 10)], function(x) return(x$adj.P.Val))
+pv = sapply(ldfData[iIndex], function(x) return(x$adj.P.Val))
 rownames(pv) = ldfData[[1]]$ind
 pv = pv[as.character(dfCommonGenes.ind$ENTREZID), ]
-colnames(pv) = cvTitle[c(8, 9, 10)]
+colnames(pv) = cvTitle[iIndex]
 identical(rownames(pv), as.character(dfCommonGenes.ind$ENTREZID))
 
-fc = sapply(ldfData[c(8, 9, 10)], function(x) return(x$logFC))
+## extract the fold changes
+fc = sapply(ldfData[iIndex], function(x) return(x$logFC))
 rownames(fc) = ldfData[[1]]$ind
 fc = fc[as.character(dfCommonGenes.ind$ENTREZID), ]
-colnames(fc) = cvTitle[c(8, 9, 10)]
+colnames(fc) = cvTitle[iIndex]
 identical(rownames(fc), rownames(pv))
 
 ### apply the filters
@@ -97,7 +102,7 @@ colnames(fc)
 
 ## get the log fold change and adjusted p-value for wt
 temp = ldfData$`results//DEAnalysis_ind:MELWTVSn.i:MELWT.xls`
-dfCommonGenes.ind$IndWtVsNiWt_logFC = temp$logFC
-dfCommonGenes.ind$IndWtVsNiWt_adj.P.Val = temp$adj.P.Val
+dfCommonGenes.ind$WT_indVSni_logFC = temp$logFC
+dfCommonGenes.ind$WT_indVSni_adj.P.Val = temp$adj.P.Val
 
-write.csv(dfCommonGenes.ind, file='results/niKoVSniWt_merged.xls')
+write.csv(dfCommonGenes.ind, file='results/induced_KOvsWT_merged.xls')
