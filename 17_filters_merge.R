@@ -31,7 +31,7 @@ cvTitle[c(2, 4, 6)]
 cvTitle[c(8, 9, 10)]
 
 ## choose the index number for the contrasts of interest
-iIndex = c(1, 3, 5)
+iIndex = c(2, 4, 6)
 cvTitle[iIndex]
 
 dfCommonGenes.ind = ldfData$`results//DEAnalysis_ind:C8VSind:MELWT.xls`
@@ -105,4 +105,4 @@ temp = ldfData$`results//DEAnalysis_ind:MELWTVSn.i:MELWT.xls`
 dfCommonGenes.ind$WT_indVSni_logFC = temp$logFC
 dfCommonGenes.ind$WT_indVSni_adj.P.Val = temp$adj.P.Val
 
-write.csv(dfCommonGenes.ind, file='results/induced_KOvsWT_merged.xls')
+write.csv(dfCommonGenes.ind, file='results/KO_indVSni_merged.xls')
