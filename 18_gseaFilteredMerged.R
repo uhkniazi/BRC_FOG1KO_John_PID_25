@@ -27,6 +27,11 @@ ldfData = lapply(ldfData, function(df){
 
 sapply(ldfData, function(df) identical(rownames(df), rn))
 
+## get the results for the WT induced vs not induced control
+ldfData$`results/WT_indVSni.xls` = data.frame(ENTREZID=ldfData[[1]]$ENTREZID,
+                       SYMBOL=ldfData[[1]]$SYMBOL,
+                       logFC=ldfData[[1]]$WT_indVSni_logFC, 
+                       row.names = rownames(ldfData[[1]]))
 
 cvTitle = gsub('results/', '', names(ldfData))
 cvTitle = gsub('.xls', '', cvTitle)
@@ -55,8 +60,8 @@ for (i in 1:length(ldfData)){
   #i = which(dfLess$p.val < 0.01)
   #rownames(dfLess[i,])
   
-  write.csv(dfGreater[,c('p.val', 'q.val', 'set.size')], file=paste('results/', cvTitle[i], '_upregulated_pathways_mSigDb_c2_curated.xls', sep=''))
-  write.csv(dfLess[,c('p.val', 'q.val', 'set.size')], file=paste('results/', cvTitle[i], '_downregulated_pathways_mSigDb_c2_curated.xls', sep=''))
+  write.csv(dfGreater[,c('p.val', 'q.val', 'set.size')], file=paste('results/mergedDownstream/', cvTitle[i], '_upregulated_pathways_mSigDb_c2_curated.xls', sep=''))
+  write.csv(dfLess[,c('p.val', 'q.val', 'set.size')], file=paste('results/mergedDownstream/', cvTitle[i], '_downregulated_pathways_mSigDb_c2_curated.xls', sep=''))
   # 
   # ## c5
   # oGage = gage(iContFc, oMsigGS.c5)
