@@ -1,4 +1,4 @@
-# File: 21_bam2bigwig.R
+# File: 22_bam2bigwig.R
 # Auth: umar.niazi@kcl.ac.uk
 # DESC: use the bam file to calculate coverage and write a bigwig file output.
 #       some ideas taken from following places:
