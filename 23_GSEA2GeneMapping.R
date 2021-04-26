@@ -113,30 +113,43 @@ dfOut$Symbol = df$SYMBOL
 
 #######################################################
 ####### find particular types of genes from pathway keyword search
+####### or do a reverse lookup after selecting a gene of interest
 library(GO.db)
 columns(GO.db)
+
+## search the full GO DB OR
 dfGO = AnnotationDbi::select(GO.db, keys=keys(GO.db), columns=columns(GO.db), keytype='GOID')
 dim(dfGO)
-## keyword search
-i = grep('cholesterol', dfGO$TERM, ignore.case = T)
+
+## OR do a reverse lookup using a seed gene list
+dfGO = AnnotationDbi::select(org.Mm.eg.db, keys = '27409', columns = c('GO'), keytype = 'ENTREZID')
+#dfGO = dfGO[dfGO$ONTOLOGY == 'BP', ]
+dfGO = na.omit(dfGO)
+dim(dfGO)
+dfGO = AnnotationDbi::select(GO.db, keys=as.character(unique(dfGO$GO)), columns=columns(GO.db), keytype='GOID')
+dim(dfGO)
+dfGO.keyword = dfGO
+
+## do a keyword search to reduce number of pathways to selected type
+i = grep('Cholesterol|lipid', dfGO$TERM, ignore.case = T)
 length(i)
-temp = dfGO[i,]
-dfGO.keyword = temp
+dfGO.keyword = dfGO[i,]
+# temp = dfGO[i,]
+# i = grep('metaboli', temp$TERM, ignore.case = T)
+# length(i)
+# temp$TERM[i]
+# dfGO.keyword = temp[i,]
 
 ### work back to original gene list
-dfGO = AnnotationDbi::select(org.Mm.eg.db, keys = dfGO.keyword$GOID, keytype = c('GO'), columns = c('ENTREZID', 'SYMBOL'))
+dfGO = AnnotationDbi::select(org.Mm.eg.db, keys = dfGO.keyword$GOID, keytype = c('GO'), columns = c('ENTREZID', 'SYMBOL', 'GENENAME'))
 dim(dfGO)
 head(dfGO)
 table(dfGO$ENTREZID %in% rownames(mData.norm))
-table(rownames(mData.norm) %in% dfGO$ENTREZID)
-## use unique names that overlap with count matrix
-i = rownames(mData.norm)[rownames(mData.norm) %in% dfGO$ENTREZID]
-dfCholestrol = AnnotationDbi::select(org.Mm.eg.db, keys = i,
-                                          columns = c('SYMBOL', 'GENENAME'), keytype = 'ENTREZID')
-identical(i, dfCholestrol$ENTREZID)
-dim(dfCholestrol)
+dfGO = dfGO[dfGO$ENTREZID %in% rownames(mData.norm), ]
 
-write.csv(dfCholestrol, file='results/dfCholesterol.csv')
+table(rownames(mData.norm) %in% dfGO$ENTREZID)
+
+write.csv(dfGO, file='results/cholensterol_lipid.csv')
 write.csv(dfOut, file='results/GSEA2Genes.csv')
 ### to add here
 # 
