@@ -104,3 +104,46 @@ identical(rownames(mCommonGenes), df$ENTREZID)
 dfCommonGenes = data.frame(mCommonGenes, Common=rowSums(mCommonGenes), groups=cp, Symbol=df$SYMBOL)
 
 write.csv(dfCommonGenes, file='results/GATA-1_ChIP-seq_in_Fetal_liver_T119_positive_commonDEGs.xls')
+
+##########################################################
+#### section added later, can be run 
+#### independently of the previous part of the script
+#### if the appropriate output file is loaded directly
+##########################################################
+dfData = read.csv(file.choose(), header=T, stringsAsFactors = F, row.names=1)
+
+library(VennDiagram)
+lVenn = list(rownames(dfData[dfData$NotInduced_KOvsWT_merged == 'TRUE',]),
+             rownames(dfData[dfData$induced_KOvsWT_merged == 'TRUE',]))
+names(lVenn) = gsub('_merged', '', colnames(dfData)[1:2])
+venn.diagram(lVenn, filename = 'results/venn_ChipSeq_Fog1_NotInduced_induced.tif', margin=0.1)
+
+### extract the genes TRUE in the selected conditions
+cvCommonGenes = Reduce(intersect, lVenn)
+## do a GO over-representation analysis of this gene list
+library(GOstats)
+library(org.Mm.eg.db)
+
+goTest = function(cvSeed, univ = keys(org.Mm.eg.db, 'ENTREZID')){
+  ## set up universe background
+  dfUniv = AnnotationDbi::select(org.Mm.eg.db, keys = univ, columns = c('GO'), keytype = 'ENTREZID')
+  dfUniv = na.omit(dfUniv)
+  univ = unique(dfUniv$ENTREZID)
+  
+  ## make hypergeometric test object for each type, CC, BP and MF
+  params = new('GOHyperGParams', geneIds=unique(cvSeed),
+               annotation='org.Mm.eg.db',
+               universeGeneIds=univ,
+               ontology='BP',
+               pvalueCutoff= 0.01,
+               conditional=FALSE,
+               testDirection='over')
+  
+  oGOStat = tryCatch(hyperGTest(params), error=function(e) NULL)
+  return(oGOStat)
+}
+
+oGO = goTest(cvCommonGenes)
+dfGO = summary(oGO)
+dfGO$adj.Pvalue = p.adjust(dfGO$Pvalue, method='BH')
+write.csv(dfGO, file='results/ChipSeq_Fog1_NotInduced_Induced_GO.xls')
