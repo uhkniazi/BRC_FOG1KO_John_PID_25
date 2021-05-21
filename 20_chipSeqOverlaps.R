@@ -47,9 +47,9 @@ names(lVenn) = cvTitle
 
 ## create a binary matrix
 # read in the appropriate data file
-dfChip = read.csv('dataExternal/GATA-1_ChIP-seq_in_Fetal_liver.csv', header=T, stringsAsFactors = F)
+dfChip = read.csv('dataExternal/FOG-1_ChIP-seq_in_MEL_ind.csv', header=T, stringsAsFactors = F)
 head(dfChip)
-cvSymbol = unique(dfChip$GATA.1_targets_T119.ve.1)
+cvSymbol = unique(dfChip$SYMBOL)
 # convert symbols to enterez id
 library(org.Mm.eg.db)
 df = AnnotationDbi::select(org.Mm.eg.db, keys = cvSymbol, keytype = 'SYMBOL', columns = 'ENTREZID')
@@ -110,16 +110,34 @@ write.csv(dfCommonGenes, file='results/GATA-1_ChIP-seq_in_Fetal_liver_T119_posit
 #### independently of the previous part of the script
 #### if the appropriate output file is loaded directly
 ##########################################################
-dfData = read.csv(file.choose(), header=T, stringsAsFactors = F, row.names=1)
+names(lVenn)
+lVenn = lVenn[-c(3,4)]
+lVenn$'FOG-1_ChIP-seq_in_MEL' = cvEnterez
 
 library(VennDiagram)
-lVenn = list(rownames(dfData[dfData$NotInduced_KOvsWT_merged == 'TRUE',]),
-             rownames(dfData[dfData$induced_KOvsWT_merged == 'TRUE',]))
-names(lVenn) = gsub('_merged', '', colnames(dfData)[1:2])
 venn.diagram(lVenn, filename = 'results/venn_ChipSeq_Fog1_NotInduced_induced.tif', margin=0.1)
 
-### extract the genes TRUE in the selected conditions
-cvCommonGenes = Reduce(intersect, lVenn)
+cvCommonGenes = unique(do.call(c, lVenn[1:2]))
+length(cvCommonGenes)
+mCommonGenes = matrix(NA, nrow=length(cvCommonGenes), ncol=length(lVenn))
+for (i in 1:ncol(mCommonGenes)){
+  mCommonGenes[,i] = cvCommonGenes %in% lVenn[[i]]
+}
+rownames(mCommonGenes) = cvCommonGenes
+colnames(mCommonGenes) = names(lVenn)
+head(mCommonGenes)
+dim(mCommonGenes)
+## direct targets
+f = mCommonGenes[,3] == T
+table(f)
+cvDirect = rownames(mCommonGenes)[f]
+length(cvDirect)
+
+cvIndirect = rownames(mCommonGenes)[!f]
+length(cvIndirect)
+
+# ### extract the genes TRUE in the selected conditions
+# cvCommonGenes = Reduce(intersect, lVenn)
 ## do a GO over-representation analysis of this gene list
 library(GOstats)
 library(org.Mm.eg.db)
@@ -143,7 +161,7 @@ goTest = function(cvSeed, univ = keys(org.Mm.eg.db, 'ENTREZID')){
   return(oGOStat)
 }
 
-oGO = goTest(cvCommonGenes)
+oGO = goTest(cvIndirect)
 dfGO = summary(oGO)
 dfGO$adj.Pvalue = p.adjust(dfGO$Pvalue, method='BH')
-write.csv(dfGO, file='results/ChipSeq_Fog1_NotInduced_Induced_GO.xls')
+write.csv(dfGO, file='results/ChipSeq_Fog1_Indirect_GO.xls')
