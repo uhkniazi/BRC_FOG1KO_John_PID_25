@@ -27,27 +27,27 @@ cvTitle = gsub('.xls', '', cvTitle)
 names(ldfData)
 ## repeat the analysis by selecting all induced vs wt
 ## and all not induced vs wt comparisons
-iSelected = c(8, 9, 10)
+iSelected = c(1, 3, 5)
 ## select significant genes
-#dfContrast1.sub = ldfData[[1]][ldfData[[1]]$adj.P.Val < 0.01 & abs(ldfData[[1]]$logFC) > 0.5,]
+dfContrast1.sub = ldfData[[1]][ldfData[[1]]$adj.P.Val < 0.01 & abs(ldfData[[1]]$logFC) > 0.5,]
 #dfContrast2.sub = ldfData[[2]][ldfData[[2]]$adj.P.Val < 0.01 & abs(ldfData[[2]]$logFC) > 0.5,]
-#dfContrast3.sub = ldfData[[3]][ldfData[[3]]$adj.P.Val < 0.01 & abs(ldfData[[3]]$logFC) > 0.5,]
+dfContrast3.sub = ldfData[[3]][ldfData[[3]]$adj.P.Val < 0.01 & abs(ldfData[[3]]$logFC) > 0.5,]
 #dfContrast4.sub = ldfData[[4]][ldfData[[4]]$adj.P.Val < 0.01 & abs(ldfData[[4]]$logFC) > 0.5,]
-#dfContrast5.sub = ldfData[[5]][ldfData[[5]]$adj.P.Val < 0.01 & abs(ldfData[[5]]$logFC) > 0.5,]
+dfContrast5.sub = ldfData[[5]][ldfData[[5]]$adj.P.Val < 0.01 & abs(ldfData[[5]]$logFC) > 0.5,]
 # dfContrast6.sub = ldfData[[6]][ldfData[[6]]$adj.P.Val < 0.01 & abs(ldfData[[6]]$logFC) > 0.5,]
 # dfContrast7.sub = ldfData[[7]][ldfData[[7]]$adj.P.Val < 0.01 & abs(ldfData[[7]]$logFC) > 0.5,]
-dfContrast8.sub = ldfData[[8]][ldfData[[8]]$adj.P.Val < 0.01 & abs(ldfData[[8]]$logFC) > 0.5,]
-dfContrast9.sub = ldfData[[9]][ldfData[[9]]$adj.P.Val < 0.01 & abs(ldfData[[9]]$logFC) > 0.5,]
-dfContrast10.sub = ldfData[[10]][ldfData[[10]]$adj.P.Val < 0.01 & abs(ldfData[[10]]$logFC) > 0.5,]
+# dfContrast8.sub = ldfData[[8]][ldfData[[8]]$adj.P.Val < 0.01 & abs(ldfData[[8]]$logFC) > 0.5,]
+# dfContrast9.sub = ldfData[[9]][ldfData[[9]]$adj.P.Val < 0.01 & abs(ldfData[[9]]$logFC) > 0.5,]
+# dfContrast10.sub = ldfData[[10]][ldfData[[10]]$adj.P.Val < 0.01 & abs(ldfData[[10]]$logFC) > 0.5,]
 
 # create a list for overlaps
-lVenn = list(#rownames(dfContrast1.sub), #rownames(dfContrast2.sub), 
-             #rownames(dfContrast3.sub),
+lVenn = list(rownames(dfContrast1.sub), #rownames(dfContrast2.sub), 
+             rownames(dfContrast3.sub),
              #rownames(dfContrast4.sub), 
-             #rownames(dfContrast5.sub)#, rownames(dfContrast6.sub),
+             rownames(dfContrast5.sub)#, rownames(dfContrast6.sub),
              # rownames(dfContrast7.sub),
-  rownames(dfContrast8.sub), rownames(dfContrast9.sub),
-             rownames(dfContrast10.sub)
+  # rownames(dfContrast8.sub), rownames(dfContrast9.sub),
+             # rownames(dfContrast10.sub)
 )
 names(ldfData)
 names(lVenn) = cvTitle[iSelected]
@@ -56,12 +56,12 @@ cvCommonGenes = Reduce(intersect, lVenn)
 ## create a binary matrix
 cvCommonGenes = unique(do.call(c, lVenn))
 mCommonGenes = matrix(NA, nrow=length(cvCommonGenes), ncol=length(lVenn)+1)
-colnames(mCommonGenes) = c(gsub('VSn.i:MELWT', '', cvTitle[iSelected]), 'n.i:MELWT')
+colnames(mCommonGenes) = c(gsub('VSind:MELWT', '', cvTitle[iSelected]), 'ind:MELWT')
 colnames(mCommonGenes)
 for (i in 1:3){
   mCommonGenes[,i] = ldfData[[iSelected[i]]][cvCommonGenes, 'coef.deflection'] 
 }
-mCommonGenes[,'n.i:MELWT'] = ldfData$`results//DEAnalysis_ind:MELWTVSn.i:MELWT.xls`[cvCommonGenes, 'coef.base'] 
+mCommonGenes[,'ind:MELWT'] = ldfData$`results//DEAnalysis_ind:MELWTVSn.i:MELWT.xls`[cvCommonGenes, 'coef.deflection'] 
 rownames(mCommonGenes) = gsub('X', '', cvCommonGenes)
 dim(mCommonGenes)
 
