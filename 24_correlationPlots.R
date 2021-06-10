@@ -104,7 +104,7 @@ aheatmap(m, annRow = NA, scale = 'none', Rowv = hcr, #breaks=0,
 source('header.R')
 
 lFiles = list.files('results/', pattern='DEAnalysis*', full.names = T, ignore.case = T)
-lFiles = lFiles[c(1, 3, 5, 7)]
+lFiles = lFiles[c(2, 4, 6, 7)]
 
 ldfData = lapply(lFiles, function(x) as.data.frame(read.csv(x, header=T, row.names=1, stringsAsFactors = F)))
 names(ldfData) = lFiles
@@ -154,7 +154,8 @@ library(NMF)
 library(RColorBrewer)
 
 m = (cor(mCommonGenes))
-aheatmap(m, annRow = NA, scale = 'none', Rowv = NA, breaks=0.5,
+range(as.vector(m))
+aheatmap(m, annRow = NA, scale = 'none', Rowv = NA,# breaks=0.5,
          Colv=NA, cexRow=1, cexCol = 1,  
          col=(brewer.pal(9, 'YlGnBu')))
 
