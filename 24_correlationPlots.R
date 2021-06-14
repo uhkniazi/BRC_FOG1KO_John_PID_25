@@ -104,7 +104,7 @@ aheatmap(m, annRow = NA, scale = 'none', Rowv = hcr, #breaks=0,
 source('header.R')
 
 lFiles = list.files('results/', pattern='DEAnalysis*', full.names = T, ignore.case = T)
-lFiles = lFiles[c(2, 4, 6, 7)]
+lFiles = lFiles[c(1, 3, 5, 7)]
 
 ldfData = lapply(lFiles, function(x) as.data.frame(read.csv(x, header=T, row.names=1, stringsAsFactors = F)))
 names(ldfData) = lFiles
@@ -149,6 +149,16 @@ for (i in 1:ncol(mCommonGenes)){
 rownames(mCommonGenes) = gsub('X', '', cvCommonGenes)
 dim(mCommonGenes)
 
+### subset the gene list on selected criteria
+## 1 - filter: top 25 up and down regulated genes
+df = dfContrast4.sub
+rownames(df) = gsub('X', '', rownames(df))
+df = df[order(df$adj.P.Val),]
+df.up = df[df$logFC > 0, ]
+df.dn = df[df$logFC < 0,]
+rn = c(rownames(df.up)[1:25], rownames(df.dn)[1:25])
+mCommonGenes = mCommonGenes[rn,]
+dim(mCommonGenes)
 ## create correlation plot for all DEGs
 library(NMF)
 library(RColorBrewer)
@@ -158,4 +168,35 @@ range(as.vector(m))
 aheatmap(m, annRow = NA, scale = 'none', Rowv = NA,# breaks=0.5,
          Colv=NA, cexRow=1, cexCol = 1,  
          col=(brewer.pal(9, 'YlGnBu')))
+
+## heatmap of coefficients (logFC)
+library(amap)
+range(mCommonGenes)
+quantile(as.vector(mCommonGenes), 0:20/20)
+m = mCommonGenes
+m[m < -3.5] = -3.5
+m[m > 3.5] = 3.5
+
+## symbols
+library(org.Mm.eg.db)
+df = AnnotationDbi::select(org.Mm.eg.db, keys = as.character(rownames(m)), columns = 'SYMBOL', keytype = 'ENTREZID')
+identical(rownames(m), df$ENTREZID)
+rownames(m) = df$SYMBOL
+
+d = Dist(t(m), method='correlation')
+hc = hclust(d)
+plot(hc)
+
+d = Dist(m, method='correlation')
+hcr = hclust(d)
+plot(hcr)
+
+aheatmap(m, annRow = NA, scale = 'row', Rowv = hcr, breaks=0,
+         Colv=hc, cexRow=2, cexCol = 1, 
+         col=rev(brewer.pal(9, 'RdBu')))
+
+aheatmap(m, annRow = NA, scale = 'none', Rowv = hcr, #breaks=0,
+         Colv=hc, cexRow=1, cexCol = 1, 
+         col=rev(brewer.pal(9, 'RdBu')))
+
 
