@@ -71,4 +71,11 @@ for(y in seq_along(x)){
 
 close(oFile)
 
+############# adding wikipathways gmt
+### https://bioconductor.org/packages/release/bioc/vignettes/rWikiPathways/inst/doc/Overview.html
+
+library(rWikiPathways)
+downloadPathwayArchive(organism="Mus musculus", format="gmt")
+## if this gives error try manual download
+downloadPathwayArchive( format="gmt")
 
