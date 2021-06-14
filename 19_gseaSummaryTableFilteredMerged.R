@@ -90,7 +90,7 @@ print(temp2)
 ## map these names to the cp
 groups = cp
 sig.pvals = rowSums(mMerged.c2.bin)
-dfMerged.c2 = data.frame(round(mMerged.c2, 3), sig.pvals, groups, DB='msigdb-c2')
+dfMerged.c2 = data.frame(signif(mMerged.c2, 4), sig.pvals, groups, DB='msigdb-c2')
 str(dfMerged.c2)
 head(dfMerged.c2)
 tail(dfMerged.c2)
@@ -186,7 +186,7 @@ print(temp2)
 ## map these names to the cp
 groups = cp
 sig.pvals = rowSums(mMerged.c3.bin)
-dfMerged.c3 = data.frame(round(mMerged.c3, 3), sig.pvals, groups, DB='msigdb-c3')
+dfMerged.c3 = data.frame(signif(mMerged.c3, 4), sig.pvals, groups, DB='msigdb-c3')
 str(dfMerged.c3)
 head(dfMerged.c3)
 tail(dfMerged.c3)
@@ -282,7 +282,7 @@ print(temp2)
 ## map these names to the cp
 groups = cp
 sig.pvals = rowSums(mMerged.c5.bin)
-dfMerged.c5 = data.frame(round(mMerged.c5, 3), sig.pvals, groups, DB='msigdb-c5')
+dfMerged.c5 = data.frame(signif(mMerged.c5, 4), sig.pvals, groups, DB='msigdb-c5')
 str(dfMerged.c5)
 head(dfMerged.c5)
 tail(dfMerged.c5)
@@ -378,7 +378,7 @@ print(temp2)
 ## map these names to the cp
 groups = cp
 sig.pvals = rowSums(mMerged.c7.bin)
-dfMerged.c7 = data.frame(round(mMerged.c7, 3), sig.pvals, groups, DB='msigdb-c7')
+dfMerged.c7 = data.frame(signif(mMerged.c7, 4), sig.pvals, groups, DB='msigdb-c7')
 str(dfMerged.c7)
 head(dfMerged.c7)
 tail(dfMerged.c7)
@@ -475,7 +475,7 @@ print(temp2)
 ## map these names to the cp
 groups = cp
 sig.pvals = rowSums(mMerged.c8.bin)
-dfMerged.c8 = data.frame(round(mMerged.c8, 3), sig.pvals, groups, DB='msigdb-c8')
+dfMerged.c8 = data.frame(signif(mMerged.c8, 4), sig.pvals, groups, DB='msigdb-c8')
 str(dfMerged.c8)
 head(dfMerged.c8)
 tail(dfMerged.c8)
@@ -571,13 +571,111 @@ print(temp2)
 ## map these names to the cp
 groups = cp
 sig.pvals = rowSums(mMerged.hm.bin)
-dfMerged.hm = data.frame(round(mMerged.hm, 3), sig.pvals, groups, DB='msigdb-hm')
+dfMerged.hm = data.frame(signif(mMerged.hm, 4), sig.pvals, groups, DB='msigdb-hm')
 str(dfMerged.hm)
 head(dfMerged.hm)
 tail(dfMerged.hm)
 
 ########
 write.csv(dfMerged.hm, file='results/mergedDownstream/gsea_msigdb_hm_merged.xls')
+
+######################################################
+######### wiki pathways
+lFiles = list.files('results/mergedDownstream/', pattern='*pathways_mSigDb_wiki_*', full.names = T, ignore.case = F)
+
+# load the files
+ldfData = lapply(lFiles, function(x) read.csv(x, row.names=1))
+names(ldfData) = lFiles
+sapply(ldfData, nrow)
+# put everything in one order by row names
+rn = rownames(ldfData[[1]])
+head(rn)
+
+ldfData = lapply(ldfData, function(df){
+  df = df[rn,]
+})
+
+# get the upregulated/downregulated in order
+ldfData.up = ldfData[grepl(lFiles, pattern = 'upregulated')]
+ldfData.down = ldfData[grepl(lFiles, pattern = 'downregulated')]
+
+## set the names for each contrast
+sn = gsub('results/mergedDownstream//(.+)_merged.+', '\\1', names(ldfData.up))
+sn[4] = 'WT_indVSni'
+names(ldfData.up) = sn
+
+sn = gsub('results/mergedDownstream//(.+)_merged.+', '\\1', names(ldfData.down))
+sn[4] = 'WT_indVSni'
+names(ldfData.down) = sn
+
+## create a table/matrix of p-values
+mMerged.up = sapply(ldfData.up, function(x) x$p.val)
+rownames(mMerged.up) = rownames(ldfData.up[[1]])
+## create similar table for downregulated
+mMerged.down = sapply(ldfData.down, function(x) x$p.val)
+rownames(mMerged.down) = rownames(ldfData.down[[1]])
+
+# sanity check
+identical(rownames(mMerged.up), rownames(mMerged.down))
+colnames(mMerged.up) = paste(colnames(mMerged.up), 'up', sep='-')
+colnames(mMerged.down) = paste(colnames(mMerged.down), 'down', sep='-')
+
+mMerged.wiki = cbind(mMerged.up, mMerged.down)
+# reorder the columns
+colnames(mMerged.wiki)
+o = c(1, 5, 2, 6, 3, 7, 4, 8)
+## sanity check
+matrix(colnames(mMerged.wiki)[o], ncol = 2, byrow = T)
+colnames(mMerged.wiki)[o]
+mMerged.wiki = mMerged.wiki[,o]
+
+# remove na sections
+dim(mMerged.wiki)
+mMerged.wiki = na.omit(mMerged.wiki)
+dim(mMerged.wiki)
+head(mMerged.wiki)
+
+### create a binary matrix based on cutoffs
+getBinaryMatrix = function(mat, cutoff=0.01){
+  mat2 = apply(mat, 2, function(x) round(x, 3) <= cutoff)
+}
+
+mMerged.wiki.bin = getBinaryMatrix(mMerged.wiki, 0.05)
+
+## group this matrix into combinations, permutations with repetition
+mMerged.wiki.bin.grp = mMerged.wiki.bin
+set.seed(123)
+dm = dist(mMerged.wiki.bin.grp, method='binary')
+hc = hclust(dm)
+plot(hc, labels=F)
+# cut the tree at the bottom to create groups
+cp = cutree(hc, h = 0.2)
+# sanity checks
+table(cp)
+length(cp)
+length(unique(cp))
+
+mMerged.wiki.bin.grp = cbind(mMerged.wiki.bin.grp, cp)
+
+### print and observe this table and select the groups you are interested in
+temp = mMerged.wiki.bin.grp
+temp = (temp[!duplicated(cp),])
+temp2 = cbind(temp, table(cp))
+rownames(temp2) = NULL
+print(temp2)
+
+## map these names to the cp
+groups = cp
+sig.pvals = rowSums(mMerged.wiki.bin)
+dfMerged.wiki = data.frame(signif(mMerged.wiki, 4), sig.pvals, groups, DB='wikipathways')
+str(dfMerged.wiki)
+head(dfMerged.wiki)
+tail(dfMerged.wiki)
+rn = rownames(dfMerged.wiki)
+rn = gsub('(^.+)%Wiki.+', replacement = '\\1', rn)
+rownames(dfMerged.wiki) = rn
+########
+write.csv(dfMerged.wiki, file='results/mergedDownstream/gsea_msigdb_wiki_merged.xls')
 
 ####################################################
 ########## merge all the results
@@ -614,13 +712,20 @@ t = rowSums(mMerged.hm.bin)
 table(t, dfMerged.hm$groups)
 dfMerged.hm.sub = dfMerged.hm[dfMerged.hm$groups != 4,]
 
+table(dfMerged.wiki$groups)
+t = rowSums(mMerged.wiki.bin)
+table(t, dfMerged.wiki$groups)
+dfMerged.wiki.sub = dfMerged.wiki[dfMerged.wiki$groups != 5,]
+
+
 dfMerged = rbind(dfMerged.c2.sub, dfMerged.c3.sub, dfMerged.c5.sub,
-                 dfMerged.c7.sub, dfMerged.c8.sub, dfMerged.hm.sub)
+                 dfMerged.c7.sub, dfMerged.c8.sub, dfMerged.hm.sub,
+                 dfMerged.wiki.sub)
 dfMerged = droplevels.data.frame(dfMerged)
 dim(dfMerged)
 str(dfMerged)
 
-write.csv(dfMerged, file='results/mergedDownstream/gsea_msigdb_significant_6db_merged.xls')
+write.csv(dfMerged, file='results/mergedDownstream/gsea_msigdb_significant_7db_merged.xls')
 
 ### heatmaps
 ### just for a quick visual check, do not use for results

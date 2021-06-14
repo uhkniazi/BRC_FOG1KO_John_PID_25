@@ -43,6 +43,7 @@ oMsigGS.c5 = readList('dataExternal/gmt/mouse.c5.all.v7.2.entrez.gmt')
 oMsigGS.c7 = readList('dataExternal/gmt/mouse.c7.all.v7.2.entrez.gmt')
 oMsigGS.c8 = readList('dataExternal/gmt/mouse.c8.all.v7.2.entrez.gmt')
 oMsigGS.hm = readList('dataExternal/gmt/mouse.h.all.v7.2.entrez.gmt')
+oWikiPw = readList('dataExternal/gmt/wikipathways-20210610-gmt-Mus_musculus.gmt')
 
 ## choose a contrast to work with loop through
 for (i in 1:length(ldfData)){
@@ -102,4 +103,11 @@ for (i in 1:length(ldfData)){
   dfLess = data.frame(oGage$less)
   write.csv(dfGreater[,c('p.val', 'q.val', 'set.size')], file=paste('results/mergedDownstream/', cvTitle[i], '_upregulated_pathways_mSigDb_hm_curated.xls', sep=''))
   write.csv(dfLess[,c('p.val', 'q.val', 'set.size')], file=paste('results/mergedDownstream/', cvTitle[i], '_downregulated_pathways_mSigDb_hm_curated.xls', sep=''))
+  
+  ## wiki
+  oGage = gage(iContFc, oWikiPw)
+  dfGreater = data.frame(oGage$greater)
+  dfLess = data.frame(oGage$less)
+  write.csv(dfGreater[,c('p.val', 'q.val', 'set.size')], file=paste('results/mergedDownstream/', cvTitle[i], '_upregulated_pathways_mSigDb_wiki_curated.xls', sep=''))
+  write.csv(dfLess[,c('p.val', 'q.val', 'set.size')], file=paste('results/mergedDownstream/', cvTitle[i], '_downregulated_pathways_mSigDb_wiki_curated.xls', sep=''))
 }
