@@ -7,15 +7,15 @@ source('header.R')
 
 df = read.csv(file.choose(), header=T, stringsAsFactors = F)
 head(df)
-up = df[,2] + runif(nrow(df), 1e-6, 1e-5)
-down = df[,3] + runif(nrow(df), 1e-6, 1e-5)
+up = df[,2]# + runif(nrow(df), 1e-6, 1e-5)
+down = df[,3]# + runif(nrow(df), 1e-6, 1e-5)
 which(up <= 0.05)
 which(down <= 0.05)
 dfPlot = data.frame(pv=c(df$induced_KOvsWT.down[which(down <= 0.05)],
                          df$induced_KOvsWT.up[which(up <= 0.05)]))
 rownames(dfPlot) = df$Pathway.Label[c(which(down <= 0.05), which(up <= 0.05))]
-dfPlot$iCol = c(rep('skyblue', times=6), rep('pink', time=3))
-dfPlot$pv = dfPlot$pv + runif(1, 1e-4, 1e-3)
+dfPlot$iCol = c(rep('skyblue', times=7), rep('pink', times=3))
+#dfPlot$pv = dfPlot$pv + runif(1, 1e-4, 1e-3)
 dfPlot$pv = -1 * log(dfPlot$pv)
 
 # iCol = rep('grey', times=length(m))
@@ -42,15 +42,18 @@ wrap.labels <- function(x, len)
     wrap.it(x, len)
   }
 }
+dim(dfPlot)
+dfPlot[9:10,] = dfPlot[10:9,]
 m = dfPlot$pv
 names(m) = rownames(dfPlot)
 iCol = as.character(dfPlot$iCol)
 par(mar=c(5,6,4,2)+0.1)
 a = names(m)
+m[m>8] = 8
 barplot(m, names.arg=wrap.labels(a, 15), horiz=T, las=1, cex.names=0.7,
         width=1, main='GSEA pathways: Induced KO VS WT', xlab='-log Pvalue', col=iCol,
         xlim=c(0, 8), xaxt='n')
-axis(side = 1, at = c(0:6, 6.9), labels = c(0:6, '>6.9'))
+axis(side = 1, at = c(0:7, 8), labels = c(0:7, '>8'))
 
 legend('topright', legend = c('Upregulated', 'Downregulated'), 
        fill = c('pink', 'skyblue'), bty = 'n')
