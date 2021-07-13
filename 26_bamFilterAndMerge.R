@@ -17,6 +17,7 @@ oGRquery = range(oGRLgenes[['13018']])
 # expand the query region size
 oGRquery = resize(oGRquery, width = width(oGRquery)+10000, fix='center')
 # sanity check if region overlaps
+strand(oGRquery) = '*'
 table(overlapsAny(oGRLgenes[['13018']], oGRquery))
 
 ##### connect to mysql database to get samples
