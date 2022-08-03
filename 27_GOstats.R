@@ -80,7 +80,7 @@ write.csv(df, file='results/GO_in_KOvsWT.csv')
 # close(oFile.go)
 
 ######## produce figures from selected pathways
-df = read.csv(file='results/GO_ni_KOvsWT.csv', stringsAsFactors = F, header=T, row.names = 1)
+df = read.csv(file='results/GO_in_KOvsWT.csv', stringsAsFactors = F, header=T)
 cvScan = scan(what = character(), sep='\n')
 
 table(df$Term %in% cvScan)
@@ -118,11 +118,11 @@ par(mar=c(5,6,4,2)+0.1)
 a = names(m)
 range(m)
 summary(m)
-m[m>19] = 19
+m[m>10] = 10
 barplot(m, names.arg=wrap.labels(a, 15), horiz=T, las=1, cex.names=0.7,
-        width=1, main='GO Over-represented Pathways: Not Induced KO VS WT', xlab='-log Pvalue', col=iCol,
-        xlim=c(0, 19), xaxt='n', sub='Cholesterol')
-axis(side = 1, at = c(0:18, 19), labels = c(0:18, '>19'))
+        width=1, main='GO Over-represented Pathways: Induced KO VS WT', xlab='-log Pvalue', col=iCol,
+        xlim=c(0, 10), xaxt='n', sub='Cholesterol')
+axis(side = 1, at = c(0:9, 10), labels = c(0:9, '>10'))
 
 # legend('topright', legend = c('Upregulated', 'Downregulated'), 
 #        fill = c('pink', 'skyblue'), bty = 'n')
