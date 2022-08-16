@@ -31,6 +31,17 @@ dfData = data.frame(inKOvsWT = dfData.inKOvsWT$logFC,
                     KOindVSni = dfData.KOIndvsNi$logFC,
                     WTindVSni = dfData.inKOvsWT$WT_indVSni_logFC, row.names = dfData.inKOvsWT$SYMBOL)
 mCommonGenes = as.matrix(dfData)
+iFilter = apply(abs(mCommonGenes), 1, max)
+quantile(iFilter, 0:20/20)
+## apply a cutoff using logFC to reduce gene list for plotting
+fFilter = iFilter >= 0.9
+table(fFilter)
+mCommonGenes = mCommonGenes[fFilter, ]
+
+# dfData.pv = data.frame(inKOvsWT = dfData.inKOvsWT$f.pvalue,
+#                     niKOvsWT = dfData.niKOvsWT$f.pvalue,
+#                     KOindVSni = dfData.KOIndvsNi$f.pvalue,
+#                     WTindVSni = dfData.inKOvsWT$WT_indVSni_adj.P.Val, row.names = dfData.inKOvsWT$SYMBOL)
 
 m = (cor(mCommonGenes))
 aheatmap(m, annRow = NA, scale = 'none', Rowv = NA,# breaks=0.4,
@@ -41,24 +52,29 @@ aheatmap(m, annRow = NA, scale = 'none', Rowv = NA,# breaks=0.4,
 library(amap)
 range(mCommonGenes)
 quantile(as.vector(mCommonGenes), 0:20/20)
-m = mCommonGenes[,c(1:2)]
+m = mCommonGenes#[,c(1:2)]
 m[m < -2.5] = -2.5
 m[m > 3] = 3
-d = Dist(t(m), method='correlation')
+# d = Dist(t(m), method='correlation')
+d = Dist(t(m), method='euclidean')
 hc = hclust(d)
 plot(hc)
 
-d = Dist(m, method='correlation')
+d = Dist(m, method='euclidean')
 hcr = hclust(d)
-plot(hcr)
+plot(hcr, sub='', xlab='', cex=0.5)
 
 aheatmap(m, annRow = NA, scale = 'row', Rowv = hcr, breaks=0,
          Colv=hc, cexRow=1, cexCol = 1, 
          col=rev(brewer.pal(9, 'RdBu')))
 
+par(mar=c(5,6,4,2)+0.1)
 aheatmap(m, annRow = NA, scale = 'none', Rowv = hcr, #breaks=0,
          Colv=hc, cexRow=1, cexCol = 1, 
          col=rev(brewer.pal(9, 'RdBu')))
 
+# aheatmap(m, annRow = NA, scale = 'none', Rowv = T, #breaks=0,
+#          Colv=T, cexRow=1.5, cexCol = 1, 
+#          col=rev(brewer.pal(9, 'RdBu')))
 
 
